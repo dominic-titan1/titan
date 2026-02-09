@@ -28,7 +28,7 @@
     .status {
       font-size: 16px;
       opacity: 0.8;
-      margin-bottom: 40px;
+      margin-bottom: 20px;
     }
 
     .panel {
@@ -37,9 +37,16 @@
       border-radius: 12px;
       padding: 20px;
       width: 85%;
-      max-width: 400px;
+      max-width: 420px;
       margin: auto;
       box-shadow: 0 0 20px rgba(0, 247, 255, 0.3);
+    }
+
+    #log {
+      min-height: 80px;
+      margin-bottom: 10px;
+      text-align: left;
+      font-size: 15px;
     }
 
     input {
@@ -58,7 +65,7 @@
     }
 
     button {
-      margin-top: 15px;
+      margin-top: 12px;
       width: 100%;
       padding: 12px;
       font-size: 16px;
@@ -70,12 +77,8 @@
       font-weight: bold;
     }
 
-    button:active {
-      transform: scale(0.98);
-    }
-
     footer {
-      margin-top: 40px;
+      margin-top: 30px;
       font-size: 12px;
       opacity: 0.5;
     }
@@ -85,14 +88,40 @@
 <body>
   <div class="container">
     <h1>TITAN</h1>
-    <div class="status">Status: Online</div>
+    <div class="status" id="status">Status: Online</div>
 
     <div class="panel">
-      <input placeholder="Type a command…" disabled>
-      <button disabled>Send</button>
+      <div id="log">Titan standing by.</div>
+      <input id="input" placeholder="Type a command…" />
+      <button onclick="send()">Send</button>
     </div>
 
     <footer>🛡️ Titan AI System</footer>
   </div>
+
+  <script>
+    function send() {
+      const inputEl = document.getElementById("input");
+      const log = document.getElementById("log");
+      const text = inputEl.value.toLowerCase().trim();
+
+      if (!text) return;
+
+      let reply = "Command received.";
+
+      if (text.includes("hey titan")) {
+        reply = "Titan online. Ready.";
+      } else if (text.includes("status")) {
+        reply = "All systems nominal.";
+      } else if (text.includes("help")) {
+        reply = "Available commands: hey titan, status, help.";
+      } else {
+        reply = "I heard: \"" + text + "\"";
+      }
+
+      log.textContent = reply;
+      inputEl.value = "";
+    }
+  </script>
 </body>
 </html>
