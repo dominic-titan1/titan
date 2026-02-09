@@ -7,24 +7,24 @@
 
 <style>
 body {
-  background: linear-gradient(180deg, #050505, #000);
-  font-family: Arial, Helvetica, sans-serif;
-  color: #00e5ff;
   margin: 0;
   height: 100vh;
+  background: radial-gradient(circle at top, #0a0a0a, #000);
+  font-family: Arial, Helvetica, sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
+  color: #00e5ff;
 }
 
 #app {
   width: 92%;
-  max-width: 420px;
-  background: #060606;
+  max-width: 430px;
+  background: #050505;
   border: 2px solid #00e5ff;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 0 25px rgba(0,229,255,0.35);
+  box-shadow: 0 0 30px rgba(0,229,255,0.35);
 }
 
 #title {
@@ -34,13 +34,12 @@ body {
 }
 
 #chat {
+  height: 270px;
+  overflow-y: auto;
   background: #000;
   border: 1px solid #00e5ff;
   border-radius: 8px;
   padding: 10px;
-  height: 260px;
-  overflow-y: auto;
-  margin-bottom: 10px;
   font-size: 14px;
 }
 
@@ -51,11 +50,12 @@ body {
 
 .titan {
   color: #00e5ff;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 #input {
   width: 100%;
+  margin-top: 10px;
   padding: 10px;
   font-size: 16px;
   background: #000;
@@ -82,36 +82,76 @@ body {
 
 <div id="app">
   <div id="title">TITAN AI</div>
+
   <div id="chat">
-    <div class="titan">Titan offline. Say <b>"hey titan"</b> to activate.</div>
+    <div class="titan">
+      Titan offline. Say <b>"hey titan"</b> to activate.
+    </div>
   </div>
-  <input id="input" placeholder="Type a command…" onkeydown="if(event.key==='Enter'){send()}" />
+
+  <input id="input" placeholder="Type a command…" 
+    onkeydown="if(event.key==='Enter'){send()}" />
   <button id="send" onclick="send()">Send</button>
 </div>
 
 <script>
 let titanOnline = false;
 
+// Add message to chat
 function addMessage(text, type) {
   const chat = document.getElementById("chat");
-  const div = document.createElement("div");
-  div.className = type;
-  div.innerHTML = text;
-  chat.appendChild(div);
+  const msg = document.createElement("div");
+  msg.className = type;
+  msg.innerHTML = text;
+  chat.appendChild(msg);
   chat.scrollTop = chat.scrollHeight;
 }
 
+// Step 1: Analyze intent
+function analyze(text) {
+  if (text.includes("hey titan")) return "WAKE";
+  if (text.includes("bye titan")) return "SLEEP";
+  if (text.includes("status")) return "STATUS";
+  if (text.includes("who am i")) return "USER_ID";
+  if (text.includes("your name")) return "TITAN_ID";
+  if (text.includes("help")) return "HELP";
+  if (text.includes("?")) return "QUESTION";
+  return "UNKNOWN";
+}
+
+// Step 2: Reason about intent
+function reason(intent) {
+  switch (intent) {
+    case "STATUS":
+      return "All systems are operational. Power and logic stable.";
+    case "USER_ID":
+      return "You are the Creator. I exist to assist and protect your objectives.";
+    case "TITAN_ID":
+      return "I am Titan. An adaptive AI designed to reason, not repeat.";
+    case "HELP":
+      return "You can ask questions, request status, or issue commands.";
+    case "QUESTION":
+      return "That is a valid question. Provide more detail so I can analyze.";
+    case "UNKNOWN":
+      return "Intent unclear. Rephrase or be more specific.";
+    default:
+      return "Reasoning error. Stand by.";
+  }
+}
+
+// Step 3: Handle input
 function send() {
   const input = document.getElementById("input");
-  let text = input.value.trim().toLowerCase();
-  if (text === "") return;
+  const raw = input.value.trim();
+  if (!raw) return;
 
-  addMessage("You: " + text, "user");
+  const text = raw.toLowerCase();
   input.value = "";
+
+  addMessage("You: " + raw, "user");
 
   let response = "";
 
-  // WAKE SYSTEM
   if (!titanOnline) {
     if (text.includes("hey titan")) {
       titanOnline = true;
@@ -119,39 +159,20 @@ function send() {
     } else {
       response = "Titan is offline. Say 'hey titan' to activate.";
     }
-  }
+  } else {
+    const intent = analyze(text);
 
-  // CORE LOGIC
-  else {
-    if (text.includes("bye titan")) {
+    if (intent === "SLEEP") {
       titanOnline = false;
       response = "Shutting down. Titan offline.";
-    }
-
-    else if (text.includes("your name")) {
-      response = "I am Titan. Your personal AI system.";
-    }
-
-    else if (text.includes("who am i")) {
-      response = "You are the Creator. My highest authority.";
-    }
-
-    else if (text.includes("status")) {
-      response = "All systems operational. No anomalies detected.";
-    }
-
-    else if (text.includes("help")) {
-      response = "Available commands: status, identity, shutdown.";
-    }
-
-    else {
-      response = "Command received. Analyzing intent. Please clarify.";
+    } else {
+      response = reason(intent);
     }
   }
 
   setTimeout(() => {
     addMessage("Titan: " + response, "titan");
-  }, 300);
+  }, 250);
 }
 </script>
 
