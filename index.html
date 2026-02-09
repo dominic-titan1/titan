@@ -30,7 +30,6 @@ body {
 #title {
   text-align: center;
   font-size: 22px;
-  margin-bottom: 6px;
 }
 
 #mode {
@@ -50,15 +49,8 @@ body {
   font-size: 14px;
 }
 
-.user {
-  color: #ffffff;
-  margin-bottom: 4px;
-}
-
-.titan {
-  color: #00e5ff;
-  margin-bottom: 10px;
-}
+.user { color: #fff; margin-bottom: 4px; }
+.titan { color: #00e5ff; margin-bottom: 10px; }
 
 #input {
   width: 100%;
@@ -106,13 +98,28 @@ body {
 let titanOnline = false;
 let personality = "CALM";
 
-// UI helpers
+// Sample news (safe, simulated)
+const newsFeed = [
+  {
+    title: "Major tech company announces new AI system",
+    category: "Technology"
+  },
+  {
+    title: "Global leaders meet to discuss climate concerns",
+    category: "World"
+  },
+  {
+    title: "Scientists make breakthrough in renewable energy",
+    category: "Science"
+  }
+];
+
 function addMessage(text, type) {
   const chat = document.getElementById("chat");
-  const msg = document.createElement("div");
-  msg.className = type;
-  msg.innerHTML = text;
-  chat.appendChild(msg);
+  const div = document.createElement("div");
+  div.className = type;
+  div.innerHTML = text;
+  chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
@@ -121,52 +128,38 @@ function setModeUI() {
     "Mode: " + personality.charAt(0) + personality.slice(1).toLowerCase();
 }
 
-// Intent analysis
-function analyze(text) {
+function analyzeIntent(text) {
   if (text.includes("hey titan")) return "WAKE";
   if (text.includes("bye titan")) return "SLEEP";
-  if (text.includes("status")) return "STATUS";
-  if (text.includes("your name")) return "TITAN_ID";
-  if (text.includes("who am i")) return "USER_ID";
-  if (text.includes("help")) return "HELP";
   if (text.includes("mode")) return "MODE";
-  if (text.includes("?")) return "QUESTION";
-  return "UNKNOWN";
+  if (text.includes("news")) return "NEWS";
+  return "GENERAL";
 }
 
-// Personality-based reasoning
-function reason(intent) {
-  const responses = {
-    CALM: {
-      STATUS: "All systems are stable. No issues detected.",
-      TITAN_ID: "I am Titan. Calm, observant, and ready to assist.",
-      USER_ID: "You are the Creator. I follow your guidance.",
-      HELP: "You may ask questions, check status, or change my mode.",
-      QUESTION: "That is a thoughtful question. Please clarify.",
-      UNKNOWN: "I am not certain of your intent. Try again."
-    },
-    TACTICAL: {
-      STATUS: "Systems operational. Defensive and analytical readiness confirmed.",
-      TITAN_ID: "Titan online. Tactical reasoning engaged.",
-      USER_ID: "Creator identified. Command authority confirmed.",
-      HELP: "Issue direct commands or request system analysis.",
-      QUESTION: "Analyzing question. Provide parameters.",
-      UNKNOWN: "Command unclear. Refine input."
-    },
-    CINEMATIC: {
-      STATUS: "All systems glow with power. The moment is under control.",
-      TITAN_ID: "I am Titan — forged for moments that matter.",
-      USER_ID: "You are the one who commands the future.",
-      HELP: "Speak, and the system will answer.",
-      QUESTION: "A question worthy of consideration. Elaborate.",
-      UNKNOWN: "The signal is unclear. Speak with intent."
+function analyzeNews() {
+  let report = "<b>News Analysis:</b><br><br>";
+
+  newsFeed.forEach(item => {
+    if (personality === "CALM") {
+      report += `• ${item.title}<br>
+      Impact: Informational. Monitoring developments.<br><br>`;
     }
-  };
 
-  return responses[personality][intent] || responses[personality].UNKNOWN;
+    if (personality === "TACTICAL") {
+      report += `• ${item.title}<br>
+      Category: ${item.category}<br>
+      Risk Level: Low–Moderate. Continued observation advised.<br><br>`;
+    }
+
+    if (personality === "CINEMATIC") {
+      report += `• ${item.title}<br>
+      The world shifts. Change is unfolding in real time.<br><br>`;
+    }
+  });
+
+  return report;
 }
 
-// Main handler
 function send() {
   const input = document.getElementById("input");
   const raw = input.value.trim();
@@ -181,12 +174,12 @@ function send() {
   if (!titanOnline) {
     if (text.includes("hey titan")) {
       titanOnline = true;
-      response = "Titan online. Personality systems active.";
+      response = "Titan online. News and analysis systems ready.";
     } else {
       response = "Titan is offline. Say 'hey titan' to activate.";
     }
   } else {
-    const intent = analyze(text);
+    const intent = analyzeIntent(text);
 
     if (intent === "SLEEP") {
       titanOnline = false;
@@ -195,20 +188,24 @@ function send() {
 
     else if (intent === "MODE") {
       if (text.includes("calm")) personality = "CALM";
-      else if (text.includes("tactical")) personality = "TACTICAL";
-      else if (text.includes("cinematic")) personality = "CINEMATIC";
+      if (text.includes("tactical")) personality = "TACTICAL";
+      if (text.includes("cinematic")) personality = "CINEMATIC";
       setModeUI();
-      response = "Personality mode switched.";
+      response = "Personality mode updated.";
+    }
+
+    else if (intent === "NEWS") {
+      response = analyzeNews();
     }
 
     else {
-      response = reason(intent);
+      response = "Command received. Awaiting further instruction.";
     }
   }
 
   setTimeout(() => {
     addMessage("Titan: " + response, "titan");
-  }, 250);
+  }, 300);
 }
 </script>
 
