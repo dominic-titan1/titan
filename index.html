@@ -19,7 +19,7 @@ body {
 
 #app {
   width: 92%;
-  max-width: 430px;
+  max-width: 440px;
   background: #050505;
   border: 2px solid #00e5ff;
   border-radius: 14px;
@@ -30,11 +30,18 @@ body {
 #title {
   text-align: center;
   font-size: 22px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+}
+
+#mode {
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.85;
+  margin-bottom: 6px;
 }
 
 #chat {
-  height: 270px;
+  height: 260px;
   overflow-y: auto;
   background: #000;
   border: 1px solid #00e5ff;
@@ -82,6 +89,7 @@ body {
 
 <div id="app">
   <div id="title">TITAN AI</div>
+  <div id="mode">Mode: Calm</div>
 
   <div id="chat">
     <div class="titan">
@@ -89,15 +97,16 @@ body {
     </div>
   </div>
 
-  <input id="input" placeholder="Type a command…" 
+  <input id="input" placeholder="Type a command…"
     onkeydown="if(event.key==='Enter'){send()}" />
   <button id="send" onclick="send()">Send</button>
 </div>
 
 <script>
 let titanOnline = false;
+let personality = "CALM";
 
-// Add message to chat
+// UI helpers
 function addMessage(text, type) {
   const chat = document.getElementById("chat");
   const msg = document.createElement("div");
@@ -107,39 +116,57 @@ function addMessage(text, type) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// Step 1: Analyze intent
+function setModeUI() {
+  document.getElementById("mode").innerText =
+    "Mode: " + personality.charAt(0) + personality.slice(1).toLowerCase();
+}
+
+// Intent analysis
 function analyze(text) {
   if (text.includes("hey titan")) return "WAKE";
   if (text.includes("bye titan")) return "SLEEP";
   if (text.includes("status")) return "STATUS";
-  if (text.includes("who am i")) return "USER_ID";
   if (text.includes("your name")) return "TITAN_ID";
+  if (text.includes("who am i")) return "USER_ID";
   if (text.includes("help")) return "HELP";
+  if (text.includes("mode")) return "MODE";
   if (text.includes("?")) return "QUESTION";
   return "UNKNOWN";
 }
 
-// Step 2: Reason about intent
+// Personality-based reasoning
 function reason(intent) {
-  switch (intent) {
-    case "STATUS":
-      return "All systems are operational. Power and logic stable.";
-    case "USER_ID":
-      return "You are the Creator. I exist to assist and protect your objectives.";
-    case "TITAN_ID":
-      return "I am Titan. An adaptive AI designed to reason, not repeat.";
-    case "HELP":
-      return "You can ask questions, request status, or issue commands.";
-    case "QUESTION":
-      return "That is a valid question. Provide more detail so I can analyze.";
-    case "UNKNOWN":
-      return "Intent unclear. Rephrase or be more specific.";
-    default:
-      return "Reasoning error. Stand by.";
-  }
+  const responses = {
+    CALM: {
+      STATUS: "All systems are stable. No issues detected.",
+      TITAN_ID: "I am Titan. Calm, observant, and ready to assist.",
+      USER_ID: "You are the Creator. I follow your guidance.",
+      HELP: "You may ask questions, check status, or change my mode.",
+      QUESTION: "That is a thoughtful question. Please clarify.",
+      UNKNOWN: "I am not certain of your intent. Try again."
+    },
+    TACTICAL: {
+      STATUS: "Systems operational. Defensive and analytical readiness confirmed.",
+      TITAN_ID: "Titan online. Tactical reasoning engaged.",
+      USER_ID: "Creator identified. Command authority confirmed.",
+      HELP: "Issue direct commands or request system analysis.",
+      QUESTION: "Analyzing question. Provide parameters.",
+      UNKNOWN: "Command unclear. Refine input."
+    },
+    CINEMATIC: {
+      STATUS: "All systems glow with power. The moment is under control.",
+      TITAN_ID: "I am Titan — forged for moments that matter.",
+      USER_ID: "You are the one who commands the future.",
+      HELP: "Speak, and the system will answer.",
+      QUESTION: "A question worthy of consideration. Elaborate.",
+      UNKNOWN: "The signal is unclear. Speak with intent."
+    }
+  };
+
+  return responses[personality][intent] || responses[personality].UNKNOWN;
 }
 
-// Step 3: Handle input
+// Main handler
 function send() {
   const input = document.getElementById("input");
   const raw = input.value.trim();
@@ -147,7 +174,6 @@ function send() {
 
   const text = raw.toLowerCase();
   input.value = "";
-
   addMessage("You: " + raw, "user");
 
   let response = "";
@@ -155,7 +181,7 @@ function send() {
   if (!titanOnline) {
     if (text.includes("hey titan")) {
       titanOnline = true;
-      response = "Titan online. Awaiting instructions, Creator.";
+      response = "Titan online. Personality systems active.";
     } else {
       response = "Titan is offline. Say 'hey titan' to activate.";
     }
@@ -164,8 +190,18 @@ function send() {
 
     if (intent === "SLEEP") {
       titanOnline = false;
-      response = "Shutting down. Titan offline.";
-    } else {
+      response = "Powering down. Titan offline.";
+    }
+
+    else if (intent === "MODE") {
+      if (text.includes("calm")) personality = "CALM";
+      else if (text.includes("tactical")) personality = "TACTICAL";
+      else if (text.includes("cinematic")) personality = "CINEMATIC";
+      setModeUI();
+      response = "Personality mode switched.";
+    }
+
+    else {
       response = reason(intent);
     }
   }
