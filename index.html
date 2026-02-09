@@ -1,212 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Titan AI</title>
+  <meta charset="UTF-8">
+  <title>Titan AI</title>
 
-<style>
-body {
-  margin: 0;
-  height: 100vh;
-  background: radial-gradient(circle at top, #0a0a0a, #000);
-  font-family: Arial, Helvetica, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #00e5ff;
-}
+  <style>
+    body {
+      background: radial-gradient(circle at top, #0b0f14, #000);
+      color: #00eaff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
 
-#app {
-  width: 92%;
-  max-width: 440px;
-  background: #050505;
-  border: 2px solid #00e5ff;
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 0 30px rgba(0,229,255,0.35);
-}
+    .container {
+      width: 90%;
+      max-width: 500px;
+      border: 2px solid #00eaff;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 0 20px #00eaff;
+      background: rgba(0,0,0,0.85);
+    }
 
-#title {
-  text-align: center;
-  font-size: 22px;
-}
+    h1 {
+      text-align: center;
+      margin: 5px 0;
+    }
 
-#mode {
-  text-align: center;
-  font-size: 13px;
-  opacity: 0.85;
-  margin-bottom: 6px;
-}
+    .mode {
+      text-align: center;
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 10px;
+    }
 
-#chat {
-  height: 260px;
-  overflow-y: auto;
-  background: #000;
-  border: 1px solid #00e5ff;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 14px;
-}
+    .chat {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #00eaff;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
 
-.user { color: #fff; margin-bottom: 4px; }
-.titan { color: #00e5ff; margin-bottom: 10px; }
+    .user {
+      color: #ffffff;
+      margin-bottom: 5px;
+    }
 
-#input {
-  width: 100%;
-  margin-top: 10px;
-  padding: 10px;
-  font-size: 16px;
-  background: #000;
-  color: #00e5ff;
-  border: 1px solid #00e5ff;
-  border-radius: 6px;
-}
+    .titan {
+      color: #00eaff;
+      margin-bottom: 10px;
+    }
 
-#send {
-  width: 100%;
-  margin-top: 8px;
-  padding: 10px;
-  font-size: 16px;
-  background: #00e5ff;
-  color: #000;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-}
-</style>
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      margin-bottom: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #00eaff;
+      color: #000;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #00bcd4;
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="app">
-  <div id="title">TITAN AI</div>
-  <div id="mode">Mode: Calm</div>
+<div class="container">
+  <h1>TITAN AI</h1>
+  <div class="mode">Mode: <span id="modeDisplay">Calm</span></div>
 
-  <div id="chat">
-    <div class="titan">
-      Titan offline. Say <b>"hey titan"</b> to activate.
-    </div>
+  <div class="chat" id="chatBox">
+    <div class="titan">Titan offline. Say <b>"hey titan"</b> to activate.</div>
   </div>
 
-  <input id="input" placeholder="Type a command…"
-    onkeydown="if(event.key==='Enter'){send()}" />
-  <button id="send" onclick="send()">Send</button>
+  <input id="userInput" placeholder="Type a command..." />
+  <button onclick="handleInput()">Send</button>
 </div>
 
 <script>
-let titanOnline = false;
-let personality = "CALM";
+  let titanOnline = false;
+  let titanMode = "calm";
+  let memory = [];
 
-// Sample news (safe, simulated)
-const newsFeed = [
-  {
-    title: "Major tech company announces new AI system",
-    category: "Technology"
-  },
-  {
-    title: "Global leaders meet to discuss climate concerns",
-    category: "World"
-  },
-  {
-    title: "Scientists make breakthrough in renewable energy",
-    category: "Science"
+  function addMessage(text, sender) {
+    const chatBox = document.getElementById("chatBox");
+    const msg = document.createElement("div");
+    msg.className = sender;
+    msg.textContent = (sender === "user" ? "You: " : "Titan: ") + text;
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
-];
 
-function addMessage(text, type) {
-  const chat = document.getElementById("chat");
-  const div = document.createElement("div");
-  div.className = type;
-  div.innerHTML = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-}
+  function handleInput() {
+    const input = document.getElementById("userInput");
+    const text = input.value.trim().toLowerCase();
+    if (!text) return;
 
-function setModeUI() {
-  document.getElementById("mode").innerText =
-    "Mode: " + personality.charAt(0) + personality.slice(1).toLowerCase();
-}
+    addMessage(input.value, "user");
+    memory.push({ role: "user", text });
 
-function analyzeIntent(text) {
-  if (text.includes("hey titan")) return "WAKE";
-  if (text.includes("bye titan")) return "SLEEP";
-  if (text.includes("mode")) return "MODE";
-  if (text.includes("news")) return "NEWS";
-  return "GENERAL";
-}
+    input.value = "";
 
-function analyzeNews() {
-  let report = "<b>News Analysis:</b><br><br>";
+    setTimeout(() => {
+      const response = titanThink(text);
+      addMessage(response, "titan");
+      memory.push({ role: "titan", text: response });
+    }, 500);
+  }
 
-  newsFeed.forEach(item => {
-    if (personality === "CALM") {
-      report += `• ${item.title}<br>
-      Impact: Informational. Monitoring developments.<br><br>`;
+  function titanThink(text) {
+    if (!titanOnline) {
+      if (text.includes("hey titan")) {
+        titanOnline = true;
+        return "Titan online. Systems active. Awaiting command.";
+      }
+      return "System offline. Activation phrase required.";
     }
 
-    if (personality === "TACTICAL") {
-      report += `• ${item.title}<br>
-      Category: ${item.category}<br>
-      Risk Level: Low–Moderate. Continued observation advised.<br><br>`;
-    }
-
-    if (personality === "CINEMATIC") {
-      report += `• ${item.title}<br>
-      The world shifts. Change is unfolding in real time.<br><br>`;
-    }
-  });
-
-  return report;
-}
-
-function send() {
-  const input = document.getElementById("input");
-  const raw = input.value.trim();
-  if (!raw) return;
-
-  const text = raw.toLowerCase();
-  input.value = "";
-  addMessage("You: " + raw, "user");
-
-  let response = "";
-
-  if (!titanOnline) {
-    if (text.includes("hey titan")) {
-      titanOnline = true;
-      response = "Titan online. News and analysis systems ready.";
-    } else {
-      response = "Titan is offline. Say 'hey titan' to activate.";
-    }
-  } else {
-    const intent = analyzeIntent(text);
-
-    if (intent === "SLEEP") {
+    if (text.includes("bye titan")) {
       titanOnline = false;
-      response = "Powering down. Titan offline.";
+      return "Titan shutting down. Goodbye, Creator.";
     }
 
-    else if (intent === "MODE") {
-      if (text.includes("calm")) personality = "CALM";
-      if (text.includes("tactical")) personality = "TACTICAL";
-      if (text.includes("cinematic")) personality = "CINEMATIC";
-      setModeUI();
-      response = "Personality mode updated.";
+    if (text.includes("mode")) {
+      if (text.includes("combat")) titanMode = "combat";
+      else if (text.includes("calm")) titanMode = "calm";
+      else if (text.includes("analysis")) titanMode = "analysis";
+
+      document.getElementById("modeDisplay").textContent =
+        titanMode.charAt(0).toUpperCase() + titanMode.slice(1);
+
+      return "Personality mode set to " + titanMode + ".";
     }
 
-    else if (intent === "NEWS") {
-      response = analyzeNews();
-    }
-
-    else {
-      response = "Command received. Awaiting further instruction.";
-    }
+    return reason(text);
   }
 
-  setTimeout(() => {
-    addMessage("Titan: " + response, "titan");
-  }, 300);
-}
+  function reason(text) {
+    if (text.includes("who are you")) {
+      return "I am Titan. An evolving artificial intelligence designed to assist, analyze, and adapt.";
+    }
+
+    if (text.includes("what can you do")) {
+      return "I can reason through problems, maintain memory, switch personalities, and expand with new systems.";
+    }
+
+    if (text.includes("analyze")) {
+      return "Analysis requested. I require data input or a connected news source.";
+    }
+
+    if (text.includes("remember")) {
+      return "Memory capacity active. I currently hold " + memory.length + " conversation entries.";
+    }
+
+    return respondByMode();
+  }
+
+  function respondByMode() {
+    if (titanMode === "calm") {
+      return "Acknowledged. Please continue.";
+    }
+
+    if (titanMode === "analysis") {
+      return "Processing logic pathways. Clarify objective.";
+    }
+
+    if (titanMode === "combat") {
+      return "Command received. Standing by for tactical input.";
+    }
+
+    return "Awaiting instruction.";
+  }
 </script>
 
 </body>
