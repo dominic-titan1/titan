@@ -7,39 +7,51 @@
 
 <style>
 body {
-  background: radial-gradient(circle at top, #111 0%, #000 60%);
-  color: #00e5ff;
+  background: linear-gradient(180deg, #050505, #000);
   font-family: Arial, Helvetica, sans-serif;
+  color: #00e5ff;
+  margin: 0;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  margin: 0;
 }
 
-#panel {
-  width: 90%;
+#app {
+  width: 92%;
   max-width: 420px;
-  background: #050505;
+  background: #060606;
   border: 2px solid #00e5ff;
   border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 0 25px rgba(0,229,255,0.4);
+  padding: 14px;
+  box-shadow: 0 0 25px rgba(0,229,255,0.35);
 }
 
 #title {
   text-align: center;
   font-size: 22px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-#output {
-  min-height: 120px;
-  border: 1px solid #00e5ff;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 10px;
+#chat {
   background: #000;
+  border: 1px solid #00e5ff;
+  border-radius: 8px;
+  padding: 10px;
+  height: 260px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.user {
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.titan {
+  color: #00e5ff;
+  margin-bottom: 8px;
 }
 
 #input {
@@ -52,42 +64,54 @@ body {
   border-radius: 6px;
 }
 
-#button {
+#send {
   width: 100%;
   margin-top: 8px;
   padding: 10px;
+  font-size: 16px;
   background: #00e5ff;
   color: #000;
-  font-weight: bold;
   border: none;
   border-radius: 6px;
-  cursor: pointer;
+  font-weight: bold;
 }
 </style>
 </head>
 
 <body>
 
-<div id="panel">
+<div id="app">
   <div id="title">TITAN AI</div>
-  <div id="output">Titan offline. Say "hey titan" to begin.</div>
+  <div id="chat">
+    <div class="titan">Titan offline. Say <b>"hey titan"</b> to activate.</div>
+  </div>
   <input id="input" placeholder="Type a command…" onkeydown="if(event.key==='Enter'){send()}" />
-  <button id="button" onclick="send()">Send</button>
+  <button id="send" onclick="send()">Send</button>
 </div>
 
 <script>
 let titanOnline = false;
 
+function addMessage(text, type) {
+  const chat = document.getElementById("chat");
+  const div = document.createElement("div");
+  div.className = type;
+  div.innerHTML = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
 function send() {
-  const inputBox = document.getElementById("input");
-  const output = document.getElementById("output");
-
-  let text = inputBox.value.toLowerCase().trim();
-  let response = "";
-
+  const input = document.getElementById("input");
+  let text = input.value.trim().toLowerCase();
   if (text === "") return;
 
-  // --- WAKE SYSTEM ---
+  addMessage("You: " + text, "user");
+  input.value = "";
+
+  let response = "";
+
+  // WAKE SYSTEM
   if (!titanOnline) {
     if (text.includes("hey titan")) {
       titanOnline = true;
@@ -97,9 +121,14 @@ function send() {
     }
   }
 
-  // --- CORE LOGIC ---
+  // CORE LOGIC
   else {
-    if (text.includes("your name")) {
+    if (text.includes("bye titan")) {
+      titanOnline = false;
+      response = "Shutting down. Titan offline.";
+    }
+
+    else if (text.includes("your name")) {
       response = "I am Titan. Your personal AI system.";
     }
 
@@ -108,16 +137,11 @@ function send() {
     }
 
     else if (text.includes("status")) {
-      response = "All systems operational. Power levels stable.";
+      response = "All systems operational. No anomalies detected.";
     }
 
     else if (text.includes("help")) {
-      response = "You may ask for status, identity, or issue commands.";
-    }
-
-    else if (text.includes("bye titan")) {
-      titanOnline = false;
-      response = "Shutting down. Titan offline.";
+      response = "Available commands: status, identity, shutdown.";
     }
 
     else {
@@ -125,8 +149,9 @@ function send() {
     }
   }
 
-  output.innerText = response;
-  inputBox.value = "";
+  setTimeout(() => {
+    addMessage("Titan: " + response, "titan");
+  }, 300);
 }
 </script>
 
