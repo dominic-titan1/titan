@@ -1,26 +1,98 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Titan</title>
+  <title>Titan AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
     body {
-      background: #0a0a0a;
-      color: #00e5ff;
-      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top, #0f2027, #000000);
+      color: #00f7ff;
+      font-family: Arial, Helvetica, sans-serif;
       text-align: center;
+      min-height: 100vh;
+    }
+
+    .container {
       padding-top: 60px;
     }
+
     h1 {
-      font-size: 36px;
+      font-size: 42px;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
     }
-    p {
-      font-size: 18px;
+
+    .status {
+      font-size: 16px;
       opacity: 0.8;
+      margin-bottom: 40px;
+    }
+
+    .panel {
+      background: rgba(0, 255, 255, 0.08);
+      border: 1px solid #00f7ff;
+      border-radius: 12px;
+      padding: 20px;
+      width: 85%;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 0 20px rgba(0, 247, 255, 0.3);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background: #000;
+      color: #00f7ff;
+      border: 1px solid #00f7ff;
+      border-radius: 6px;
+      outline: none;
+    }
+
+    input::placeholder {
+      color: #66faff;
+    }
+
+    button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background: #00f7ff;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 12px;
+      opacity: 0.5;
     }
   </style>
 </head>
+
 <body>
-  <h1>Titan is Online</h1>
-  <p>Hello, Creator.</p>
+  <div class="container">
+    <h1>TITAN</h1>
+    <div class="status">Status: Online</div>
+
+    <div class="panel">
+      <input placeholder="Type a command…" disabled>
+      <button disabled>Send</button>
+    </div>
+
+    <footer>🛡️ Titan AI System</footer>
+  </div>
 </body>
-</html>p
+</html>
