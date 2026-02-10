@@ -1,148 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TITAN</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(180deg, #0b0f1a, #000);
+  color: #0ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+#app {
+  width: 95%;
+  max-width: 420px;
+  height: 90vh;
+  border: 2px solid #0ff;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0,0,0,0.85);
+}
+
+header {
+  text-align: center;
+  padding: 10px;
+  border-bottom: 1px solid #0ff;
+}
+
+header h1 {
+  margin: 0;
+  letter-spacing: 3px;
+}
+
+#mode {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+#chat {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.msg {
+  margin: 6px 0;
+  padding: 8px;
+  border-radius: 6px;
+  max-width: 85%;
+}
+
+.you {
+  background: #022;
+  align-self: flex-end;
+  color: #9ff;
+}
+
+.titan {
+  background: #011;
+  align-self: flex-start;
+}
+
+footer {
+  display: flex;
+  border-top: 1px solid #0ff;
+}
+
+input {
+  flex: 1;
+  padding: 12px;
+  background: black;
+  border: none;
+  color: #0ff;
+  font-size: 16px;
+}
+
+input:focus {
+  outline: none;
+}
+</style>
+</head>
+
+<body>
+<div id="app">
+  <header>
+    <h1>TITAN</h1>
+    <div id="mode">Mode: Calm</div>
+  </header>
+
+  <div id="chat"></div>
+
+  <footer>
+    <input id="input" placeholder="Say 'hey titan'..." />
+  </footer>
+</div>
+
 <script>
 let active = false;
 let mode = "Calm";
 let memory = [];
-let currentGoal = null;
-let lastIntent = null;
+let goal = null;
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const modeLabel = document.getElementById("mode");
 
-/* ===== UI ===== */
 function add(text, who) {
   const div = document.createElement("div");
   div.className = "msg " + who;
-  div.innerText = text;
+  div.textContent = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
-/* ===== MEMORY ===== */
-function remember(entry) {
-  memory.push(entry);
+function remember(text) {
+  memory.push(text);
   if (memory.length > 15) memory.shift();
 }
 
-/* ===== UNDERSTANDING ===== */
-function detectIntent(text) {
-  if (text.includes("?")) return "question";
-  if (text.startsWith("analyze") || text.startsWith("explain")) return "analysis";
-  if (text.startsWith("build") || text.startsWith("make") || text.startsWith("create")) return "goal";
-  if (text.startsWith("do ") || text.startsWith("run") || text.startsWith("activate")) return "command";
-  return "statement";
-}
-
-/* ===== CONFIDENCE CHECK ===== */
-function hasEnoughContext(intent) {
-  if ((intent === "analysis" || intent === "question") && !currentGoal) {
-    return false;
-  }
-  return true;
-}
-
-/* ===== SMART THINKING CORE ===== */
 function think(text) {
-  const intent = detectIntent(text);
-  lastIntent = intent;
+  // identity
+  if (text.includes("your name")) return "I am Titan.";
+  if (text.includes("who am i")) return "You are my creator.";
 
-  // Identity
-  if (text.includes("your name")) {
-    return "I am Titan. A reasoning and command system.";
+  // modes
+  if (text.includes("calm mode")) {
+    mode = "Calm";
+    modeLabel.textContent = "Mode: Calm";
+    return "Calm mode engaged.";
+  }
+  if (text.includes("analyst mode")) {
+    mode = "Analyst";
+    modeLabel.textContent = "Mode: Analyst";
+    return "Analyst mode engaged.";
+  }
+  if (text.includes("combat mode")) {
+    mode = "Combat";
+    modeLabel.textContent = "Mode: Combat";
+    return "Combat mode engaged.";
   }
 
-  if (text.includes("who am i")) {
-    return "You are my creator and primary operator.";
+  // goals
+  if (text.startsWith("build") || text.startsWith("make") || text.startsWith("create")) {
+    goal = text;
+    return "Goal accepted. What is the success condition?";
   }
 
-  // Goal detection
-  if (intent === "goal") {
-    currentGoal = text;
-    return "Goal registered. What result are you aiming for?";
+  if (text.includes("analyze")) {
+    return mode === "Analyst"
+      ? "Breaking it down. What factor matters most?"
+      : "What should I focus on?";
   }
 
-  // Not enough context → ask intelligently
-  if (!hasEnoughContext(intent)) {
-    return "I need more context before proceeding. What is the objective?";
+  if (text.includes("why")) {
+    return "Because understanding intent improves outcomes.";
   }
 
-  // Analysis
-  if (intent === "analysis") {
-    return "Analyzing logically. Which constraint matters most?";
-  }
-
-  // Commands
-  if (intent === "command") {
-    return "Command acknowledged. Awaiting parameters.";
-  }
-
-  // Follow-ups
-  if (intent === "question" && lastIntent === "question") {
-    return "That depends on the current goal. Clarify the decision you’re making.";
-  }
-
-  // Statements
-  if (mode === "Analyst") {
-    return "Noted. How does this affect the current goal?";
+  if (!goal) {
+    return "State the objective.";
   }
 
   if (mode === "Combat") {
-    return "Acknowledged. Awaiting actionable directive.";
+    return "Awaiting directive.";
   }
 
   return "Understood. Continue.";
 }
 
-/* ===== MAIN ===== */
 function send() {
   const text = input.value.trim();
   if (!text) return;
   input.value = "";
 
-  add("You: " + text, "you");
+  add(text, "you");
   const lower = text.toLowerCase();
+  remember(lower);
 
-  // Wake system
   if (!active) {
     if (lower.includes("hey titan")) {
       active = true;
-      add("Titan online. Systems synchronized.", "titan");
+      add("Titan online.", "titan");
     } else {
-      add("Titan offline. Say 'hey titan' to activate.", "titan");
+      add("Titan is offline. Say 'hey titan'.", "titan");
     }
     return;
   }
 
-  // Modes
-  if (lower.includes("calm mode")) {
-    mode = "Calm";
-    modeLabel.innerText = "Mode: Calm";
-    add("Calm mode engaged.", "titan");
-    return;
-  }
-
-  if (lower.includes("analyst mode")) {
-    mode = "Analyst";
-    modeLabel.innerText = "Mode: Analyst";
-    add("Analyst mode engaged.", "titan");
-    return;
-  }
-
-  if (lower.includes("combat mode")) {
-    mode = "Combat";
-    modeLabel.innerText = "Mode: Combat";
-    add("Combat mode engaged.", "titan");
-    return;
-  }
-
-  // Smart response
   const reply = think(lower);
   add(reply, "titan");
-  remember({ user: text, goal: currentGoal, intent: lastIntent });
 }
 
-/* Enter key */
 input.addEventListener("keydown", e => {
   if (e.key === "Enter") send();
 });
 </script>
+</body>
+</html>
