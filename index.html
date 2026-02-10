@@ -1,7 +1,8 @@
 <script>
 let active = false;
 let mode = "Calm";
-let memory = []; // short-term context
+let memory = [];
+let currentGoal = null;
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
@@ -19,88 +20,69 @@ function add(text, who) {
 /* ===== MEMORY ===== */
 function remember(entry) {
   memory.push(entry);
-  if (memory.length > 10) memory.shift();
+  if (memory.length > 12) memory.shift();
 }
 
 /* ===== UNDERSTANDING ===== */
-function getIntent(text) {
+function intent(text) {
   if (text.includes("?")) return "question";
   if (text.startsWith("analyze") || text.startsWith("explain")) return "analysis";
-  if (text.startsWith("do ") || text.startsWith("activate") || text.startsWith("build")) return "command";
+  if (text.startsWith("build") || text.startsWith("make") || text.startsWith("do")) return "goal";
+  if (text.startsWith("activate") || text.startsWith("run")) return "command";
   return "statement";
 }
 
-/* ===== CONTEXT AWARENESS ===== */
-function recentTopic() {
-  for (let i = memory.length - 1; i >= 0; i--) {
-    if (memory[i].topic) return memory[i].topic;
-  }
-  return null;
+/* ===== CONFIDENCE CHECK ===== */
+function confidentEnough(intentType) {
+  if (intentType === "question" && !currentGoal) return false;
+  if (intentType === "analysis" && !currentGoal) return false;
+  return true;
 }
 
-/* ===== RESPONSE STRATEGY ===== */
-function respondSmart(text) {
-  const intent = getIntent(text);
-  const topic = recentTopic();
+/* ===== SMART RESPONSE ENGINE ===== */
+function think(text) {
+  const type = intent(text);
 
   // Identity
   if (text.includes("your name")) {
-    return { reply: "I am Titan. A reasoning and command system.", topic: "identity" };
+    return "I am Titan. A reasoning and command system.";
   }
 
   if (text.includes("who am i")) {
-    return { reply: "You are my creator and operator.", topic: "identity" };
+    return "You are my creator and operator.";
+  }
+
+  // Goal setting
+  if (type === "goal") {
+    currentGoal = text;
+    return "Goal registered. What is the desired outcome?";
+  }
+
+  // Not confident → ask smart question
+  if (!confidentEnough(type)) {
+    return "I need more context before answering. What are you trying to achieve?";
   }
 
   // Analysis
-  if (intent === "analysis") {
-    return {
-      reply: "To analyze properly, I need the subject, goal, and any limits.",
-      topic: "analysis"
-    };
-  }
-
-  // Questions
-  if (intent === "question") {
-    if (topic) {
-      return {
-        reply: `That depends on the ${topic}. What decision are you trying to make?`,
-        topic
-      };
-    }
-    return {
-      reply: "That question needs context. What are you trying to figure out?",
-      topic: "question"
-    };
+  if (type === "analysis") {
+    return "Breaking this down logically. What constraint matters most?";
   }
 
   // Commands
-  if (intent === "command") {
-    return {
-      reply: "Command detected. Specify parameters before execution.",
-      topic: "command"
-    };
+  if (type === "command") {
+    return "Command acknowledged. Provide parameters.";
   }
 
   // Statements
   if (mode === "Analyst") {
-    return {
-      reply: "Noted. How does this connect to your objective?",
-      topic: "analysis"
-    };
+    return "Noted. How does this affect the current goal?";
   }
 
   if (mode === "Combat") {
-    return {
-      reply: "Acknowledged. Awaiting actionable directive.",
-      topic: "command"
-    };
+    return "Acknowledged. Awaiting actionable directive.";
   }
 
-  return {
-    reply: "Understood. Continue.",
-    topic: "conversation"
-  };
+  return "Understood. Continue.";
 }
 
 /* ===== MAIN ===== */
@@ -134,21 +116,21 @@ function send() {
   if (lower.includes("analyst mode")) {
     mode = "Analyst";
     modeLabel.innerText = "Mode: Analyst";
-    add("Analyst mode engaged. Reasoning prioritized.", "titan");
+    add("Analyst mode engaged.", "titan");
     return;
   }
 
   if (lower.includes("combat mode")) {
     mode = "Combat";
     modeLabel.innerText = "Mode: Combat";
-    add("Combat mode engaged. Tactical focus online.", "titan");
+    add("Combat mode engaged.", "titan");
     return;
   }
 
   // Smart response
-  const result = respondSmart(lower);
-  add(result.reply, "titan");
-  remember({ topic: result.topic, user: text });
+  const reply = think(lower);
+  add(reply, "titan");
+  remember({ user: text, goal: currentGoal });
 }
 
 /* Enter key */
