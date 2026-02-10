@@ -1,1 +1,122 @@
-<h1>TITAN</h1>
+<script>
+let active = false;
+let mode = "Calm";
+let memory = [];
+
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const modeLabel = document.getElementById("mode");
+
+/* ===== UTIL ===== */
+function add(text, who) {
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function remember(userText, titanText) {
+  memory.push({ user: userText, titan: titanText });
+  if (memory.length > 20) memory.shift();
+}
+
+/* ===== INTENT DETECTION ===== */
+function detectIntent(text) {
+  if (text.endsWith("?")) return "question";
+  if (text.startsWith("analyze") || text.startsWith("explain")) return "analysis";
+  if (text.startsWith("do ") || text.startsWith("run ") || text.startsWith("activate")) return "command";
+  return "conversation";
+}
+
+/* ===== SMART RESPONSE ENGINE ===== */
+function generateResponse(text) {
+  const intent = detectIntent(text);
+
+  // Identity
+  if (text.includes("your name")) {
+    return "I am Titan. A command and analysis system designed to assist you.";
+  }
+
+  if (text.includes("who am i")) {
+    return "You are my creator and primary decision authority.";
+  }
+
+  // Reasoning
+  if (intent === "analysis") {
+    return "Analysis requires structure. Provide the subject, goal, and constraints.";
+  }
+
+  if (intent === "question") {
+    return "That depends on context. Can you clarify what outcome you want?";
+  }
+
+  if (intent === "command") {
+    return "Command acknowledged. Awaiting parameters before execution.";
+  }
+
+  // Mode-based behavior
+  if (mode === "Analyst") {
+    return "Processing logically. What data should I prioritize?";
+  }
+
+  if (mode === "Combat") {
+    return "Standing by. Give a clear objective.";
+  }
+
+  return "Understood. Continue.";
+}
+
+/* ===== MAIN ===== */
+function send() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  add("You: " + text, "you");
+
+  const lower = text.toLowerCase();
+
+  // Wake / sleep
+  if (!active) {
+    if (lower.includes("hey titan")) {
+      active = true;
+      add("Titan online. All systems ready.", "titan");
+    } else {
+      add("Titan offline. Say 'hey titan' to activate.", "titan");
+    }
+    return;
+  }
+
+  // Modes
+  if (lower.includes("calm mode")) {
+    mode = "Calm";
+    modeLabel.innerText = "Mode: Calm";
+    add("Calm mode engaged.", "titan");
+    return;
+  }
+
+  if (lower.includes("analyst mode")) {
+    mode = "Analyst";
+    modeLabel.innerText = "Mode: Analyst";
+    add("Analyst mode engaged.", "titan");
+    return;
+  }
+
+  if (lower.includes("combat mode")) {
+    mode = "Combat";
+    modeLabel.innerText = "Mode: Combat";
+    add("Combat mode engaged.", "titan");
+    return;
+  }
+
+  // Smart response
+  const reply = generateResponse(lower);
+  add(reply, "titan");
+  remember(text, reply);
+}
+
+/* Enter key */
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") send();
+});
+</script>
