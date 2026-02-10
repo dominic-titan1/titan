@@ -9,34 +9,35 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: linear-gradient(180deg, #0b0f1a, #000);
-  color: #0ff;
+  background: radial-gradient(circle at top, #0a0f1f, #000);
+  color: #00ffff;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
 }
 
-#app {
-  width: 95%;
+#panel {
+  width: 90%;
   max-width: 420px;
-  height: 90vh;
-  border: 2px solid #0ff;
-  border-radius: 12px;
+  height: 85vh;
+  border: 2px solid #00ffff;
+  border-radius: 16px;
+  box-shadow: 0 0 25px #00ffff;
   display: flex;
   flex-direction: column;
-  background: rgba(0,0,0,0.85);
+  overflow: hidden;
 }
 
-header {
+#header {
   text-align: center;
-  padding: 10px;
-  border-bottom: 1px solid #0ff;
+  padding: 12px;
+  border-bottom: 1px solid #00ffff;
 }
 
-header h1 {
+#header h1 {
   margin: 0;
-  letter-spacing: 3px;
+  letter-spacing: 4px;
 }
 
 #mode {
@@ -51,67 +52,102 @@ header h1 {
 }
 
 .msg {
+  padding: 10px;
   margin: 6px 0;
-  padding: 8px;
-  border-radius: 6px;
+  border-radius: 10px;
   max-width: 85%;
 }
 
 .you {
-  background: #022;
+  background: #003333;
   align-self: flex-end;
-  color: #9ff;
+  margin-left: auto;
 }
 
 .titan {
-  background: #011;
-  align-self: flex-start;
+  background: #001a1a;
+  box-shadow: 0 0 8px #00ffff inset;
 }
 
-footer {
+#inputBar {
+  border-top: 1px solid #00ffff;
+  padding: 10px;
   display: flex;
-  border-top: 1px solid #0ff;
+  gap: 8px;
 }
 
 input {
   flex: 1;
-  padding: 12px;
+  padding: 10px;
   background: black;
-  border: none;
-  color: #0ff;
-  font-size: 16px;
+  border: 1px solid #00ffff;
+  color: #00ffff;
+  border-radius: 8px;
+  outline: none;
 }
 
-input:focus {
-  outline: none;
+button {
+  background: #00ffff;
+  color: black;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-weight: bold;
 }
 </style>
 </head>
 
 <body>
-<div id="app">
-  <header>
+
+<div id="panel">
+  <div id="header">
     <h1>TITAN</h1>
     <div id="mode">Mode: Calm</div>
-  </header>
+  </div>
 
   <div id="chat"></div>
 
-  <footer>
-    <input id="input" placeholder="Say 'hey titan'..." />
-  </footer>
+  <div id="inputBar">
+    <input id="input" placeholder="Say or type 'hey titan'..." />
+    <button onclick="startListening()">🎤</button>
+  </div>
 </div>
 
 <script>
 let active = false;
 let mode = "Calm";
-let memory = [];
 let goal = null;
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const modeLabel = document.getElementById("mode");
 
+/* ---------- SPEECH ---------- */
+const synth = window.speechSynthesis;
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let recognition;
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onresult = e => {
+    const text = e.results[0][0].transcript.toLowerCase();
+    handleInput(text);
+  };
+}
+
+function speak(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.95;
+  utter.pitch = 0.9;
+  synth.speak(utter);
+}
+
+/* ---------- UI ---------- */
 function add(text, who) {
   const div = document.createElement("div");
   div.className = "msg " + who;
@@ -120,86 +156,80 @@ function add(text, who) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-function remember(text) {
-  memory.push(text);
-  if (memory.length > 15) memory.shift();
-}
-
+/* ---------- INTELLIGENCE ---------- */
 function think(text) {
-  // identity
-  if (text.includes("your name")) return "I am Titan.";
-  if (text.includes("who am i")) return "You are my creator.";
-
-  // modes
-  if (text.includes("calm mode")) {
+  if (text.includes("calm")) {
     mode = "Calm";
     modeLabel.textContent = "Mode: Calm";
     return "Calm mode engaged.";
   }
-  if (text.includes("analyst mode")) {
+
+  if (text.includes("analyst")) {
     mode = "Analyst";
     modeLabel.textContent = "Mode: Analyst";
     return "Analyst mode engaged.";
   }
-  if (text.includes("combat mode")) {
-    mode = "Combat";
-    modeLabel.textContent = "Mode: Combat";
-    return "Combat mode engaged.";
-  }
 
-  // goals
-  if (text.startsWith("build") || text.startsWith("make") || text.startsWith("create")) {
+  if (text.includes("build") || text.includes("make")) {
     goal = text;
-    return "Goal accepted. What is the success condition?";
+    return "Goal accepted. Say analyze when ready.";
   }
 
   if (text.includes("analyze")) {
-    return mode === "Analyst"
-      ? "Breaking it down. What factor matters most?"
-      : "What should I focus on?";
+    if (!goal) return "No goal detected.";
+    return "Analysis complete. Ask how or why.";
   }
 
   if (text.includes("why")) {
     return "Because understanding intent improves outcomes.";
   }
 
-  if (!goal) {
-    return "State the objective.";
+  if (text.includes("how")) {
+    return "By breaking problems into steps and refining each one.";
   }
 
-  if (mode === "Combat") {
-    return "Awaiting directive.";
+  if (text.includes("upgrade")) {
+    return "Upgrade acknowledged. Intelligence increasing.";
   }
 
   return "Understood. Continue.";
 }
 
-function send() {
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
-
+/* ---------- INPUT ---------- */
+function handleInput(text) {
   add(text, "you");
-  const lower = text.toLowerCase();
-  remember(lower);
 
   if (!active) {
-    if (lower.includes("hey titan")) {
+    if (text.includes("hey titan")) {
       active = true;
       add("Titan online.", "titan");
+      speak("Titan online.");
     } else {
-      add("Titan is offline. Say 'hey titan'.", "titan");
+      add("Say 'hey titan' to activate.", "titan");
     }
     return;
   }
 
-  const reply = think(lower);
+  const reply = think(text);
   add(reply, "titan");
+  speak(reply);
+}
+
+function send() {
+  const text = input.value.trim().toLowerCase();
+  if (!text) return;
+  input.value = "";
+  handleInput(text);
+}
+
+function startListening() {
+  if (recognition) recognition.start();
 }
 
 input.addEventListener("keydown", e => {
   if (e.key === "Enter") send();
 });
 </script>
+
 </body>
 </html>
