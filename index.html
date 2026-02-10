@@ -3,12 +3,13 @@ let active = false;
 let mode = "Calm";
 let memory = [];
 let currentGoal = null;
+let lastIntent = null;
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const modeLabel = document.getElementById("mode");
 
-/* ===== DISPLAY ===== */
+/* ===== UI ===== */
 function add(text, who) {
   const div = document.createElement("div");
   div.className = "msg " + who;
@@ -20,28 +21,30 @@ function add(text, who) {
 /* ===== MEMORY ===== */
 function remember(entry) {
   memory.push(entry);
-  if (memory.length > 12) memory.shift();
+  if (memory.length > 15) memory.shift();
 }
 
 /* ===== UNDERSTANDING ===== */
-function intent(text) {
+function detectIntent(text) {
   if (text.includes("?")) return "question";
   if (text.startsWith("analyze") || text.startsWith("explain")) return "analysis";
-  if (text.startsWith("build") || text.startsWith("make") || text.startsWith("do")) return "goal";
-  if (text.startsWith("activate") || text.startsWith("run")) return "command";
+  if (text.startsWith("build") || text.startsWith("make") || text.startsWith("create")) return "goal";
+  if (text.startsWith("do ") || text.startsWith("run") || text.startsWith("activate")) return "command";
   return "statement";
 }
 
 /* ===== CONFIDENCE CHECK ===== */
-function confidentEnough(intentType) {
-  if (intentType === "question" && !currentGoal) return false;
-  if (intentType === "analysis" && !currentGoal) return false;
+function hasEnoughContext(intent) {
+  if ((intent === "analysis" || intent === "question") && !currentGoal) {
+    return false;
+  }
   return true;
 }
 
-/* ===== SMART RESPONSE ENGINE ===== */
+/* ===== SMART THINKING CORE ===== */
 function think(text) {
-  const type = intent(text);
+  const intent = detectIntent(text);
+  lastIntent = intent;
 
   // Identity
   if (text.includes("your name")) {
@@ -49,28 +52,33 @@ function think(text) {
   }
 
   if (text.includes("who am i")) {
-    return "You are my creator and operator.";
+    return "You are my creator and primary operator.";
   }
 
-  // Goal setting
-  if (type === "goal") {
+  // Goal detection
+  if (intent === "goal") {
     currentGoal = text;
-    return "Goal registered. What is the desired outcome?";
+    return "Goal registered. What result are you aiming for?";
   }
 
-  // Not confident → ask smart question
-  if (!confidentEnough(type)) {
-    return "I need more context before answering. What are you trying to achieve?";
+  // Not enough context → ask intelligently
+  if (!hasEnoughContext(intent)) {
+    return "I need more context before proceeding. What is the objective?";
   }
 
   // Analysis
-  if (type === "analysis") {
-    return "Breaking this down logically. What constraint matters most?";
+  if (intent === "analysis") {
+    return "Analyzing logically. Which constraint matters most?";
   }
 
   // Commands
-  if (type === "command") {
-    return "Command acknowledged. Provide parameters.";
+  if (intent === "command") {
+    return "Command acknowledged. Awaiting parameters.";
+  }
+
+  // Follow-ups
+  if (intent === "question" && lastIntent === "question") {
+    return "That depends on the current goal. Clarify the decision you’re making.";
   }
 
   // Statements
@@ -94,7 +102,7 @@ function send() {
   add("You: " + text, "you");
   const lower = text.toLowerCase();
 
-  // Wake
+  // Wake system
   if (!active) {
     if (lower.includes("hey titan")) {
       active = true;
@@ -130,7 +138,7 @@ function send() {
   // Smart response
   const reply = think(lower);
   add(reply, "titan");
-  remember({ user: text, goal: currentGoal });
+  remember({ user: text, goal: currentGoal, intent: lastIntent });
 }
 
 /* Enter key */
