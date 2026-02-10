@@ -1,13 +1,13 @@
 <script>
 let active = false;
 let mode = "Calm";
-let memory = [];
+let memory = []; // short-term context
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const modeLabel = document.getElementById("mode");
 
-/* ===== CORE UTILS ===== */
+/* ===== DISPLAY ===== */
 function add(text, who) {
   const div = document.createElement("div");
   div.className = "msg " + who;
@@ -16,63 +16,94 @@ function add(text, who) {
   chat.scrollTop = chat.scrollHeight;
 }
 
+/* ===== MEMORY ===== */
 function remember(entry) {
   memory.push(entry);
-  if (memory.length > 25) memory.shift();
+  if (memory.length > 10) memory.shift();
 }
 
 /* ===== UNDERSTANDING ===== */
-function classify(text) {
+function getIntent(text) {
   if (text.includes("?")) return "question";
   if (text.startsWith("analyze") || text.startsWith("explain")) return "analysis";
-  if (text.startsWith("do ") || text.startsWith("activate") || text.startsWith("run")) return "command";
-  if (text.length < 4) return "noise";
+  if (text.startsWith("do ") || text.startsWith("activate") || text.startsWith("build")) return "command";
   return "statement";
 }
 
-/* ===== REASONING ENGINE ===== */
-function think(text) {
-  const intent = classify(text);
+/* ===== CONTEXT AWARENESS ===== */
+function recentTopic() {
+  for (let i = memory.length - 1; i >= 0; i--) {
+    if (memory[i].topic) return memory[i].topic;
+  }
+  return null;
+}
+
+/* ===== RESPONSE STRATEGY ===== */
+function respondSmart(text) {
+  const intent = getIntent(text);
+  const topic = recentTopic();
 
   // Identity
   if (text.includes("your name")) {
-    return "I am Titan. A system built to assist, analyze, and respond with intent.";
+    return { reply: "I am Titan. A reasoning and command system.", topic: "identity" };
   }
 
   if (text.includes("who am i")) {
-    return "You are my creator and primary operator.";
+    return { reply: "You are my creator and operator.", topic: "identity" };
   }
 
   // Analysis
   if (intent === "analysis") {
-    return "To analyze properly, I need the subject and what outcome you want.";
+    return {
+      reply: "To analyze properly, I need the subject, goal, and any limits.",
+      topic: "analysis"
+    };
   }
 
   // Questions
   if (intent === "question") {
-    return "That question depends on context. What decision are you trying to make?";
+    if (topic) {
+      return {
+        reply: `That depends on the ${topic}. What decision are you trying to make?`,
+        topic
+      };
+    }
+    return {
+      reply: "That question needs context. What are you trying to figure out?",
+      topic: "question"
+    };
   }
 
   // Commands
   if (intent === "command") {
-    return "Command recognized. Specify parameters or constraints.";
+    return {
+      reply: "Command detected. Specify parameters before execution.",
+      topic: "command"
+    };
   }
 
   // Statements
-  if (intent === "statement") {
-    if (mode === "Analyst") {
-      return "Noted. How does this information connect to your objective?";
-    }
-    if (mode === "Combat") {
-      return "Acknowledged. Awaiting actionable directive.";
-    }
-    return "Understood. Continue.";
+  if (mode === "Analyst") {
+    return {
+      reply: "Noted. How does this connect to your objective?",
+      topic: "analysis"
+    };
   }
 
-  return "Input unclear. Rephrase.";
+  if (mode === "Combat") {
+    return {
+      reply: "Acknowledged. Awaiting actionable directive.",
+      topic: "command"
+    };
+  }
+
+  return {
+    reply: "Understood. Continue.",
+    topic: "conversation"
+  };
 }
 
-/* ===== MAIN FLOW ===== */
+/* ===== MAIN ===== */
 function send() {
   const text = input.value.trim();
   if (!text) return;
@@ -85,7 +116,7 @@ function send() {
   if (!active) {
     if (lower.includes("hey titan")) {
       active = true;
-      add("Titan online. Systems ready.", "titan");
+      add("Titan online. Systems synchronized.", "titan");
     } else {
       add("Titan offline. Say 'hey titan' to activate.", "titan");
     }
@@ -103,7 +134,7 @@ function send() {
   if (lower.includes("analyst mode")) {
     mode = "Analyst";
     modeLabel.innerText = "Mode: Analyst";
-    add("Analyst mode engaged. Logical processing prioritized.", "titan");
+    add("Analyst mode engaged. Reasoning prioritized.", "titan");
     return;
   }
 
@@ -115,9 +146,9 @@ function send() {
   }
 
   // Smart response
-  const reply = think(lower);
-  add(reply, "titan");
-  remember({ you: text, titan: reply });
+  const result = respondSmart(lower);
+  add(result.reply, "titan");
+  remember({ topic: result.topic, user: text });
 }
 
 /* Enter key */
