@@ -1,243 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>TITAN AI</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>TITAN AI</title>
 
-  <!-- MOBILE FIX -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+/* ===== GLOBAL ===== */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  background:
+    radial-gradient(circle at top, #00ffff22, transparent 40%),
+    linear-gradient(180deg, #020409, #050b14, #020409);
+  color: #eaffff;
+  overflow: hidden;
+}
 
-  <style>
-    /* ===== GLOBAL FIXES ===== */
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow-x: hidden;
-      background: radial-gradient(circle at top, #06141f, #000);
-      font-family: Arial, sans-serif;
-      color: #9ff6ff;
-      -webkit-text-size-adjust: 100%;
-    }
+/* Animated glow */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, #00ffff22, transparent 45%),
+    radial-gradient(circle at 80% 70%, #00bfff22, transparent 45%);
+  animation: glow 12s ease-in-out infinite alternate;
+  pointer-events: none;
+}
 
-    /* ===== CENTER WRAPPER ===== */
-    .wrapper {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-      box-sizing: border-box;
-    }
+@keyframes glow {
+  from { opacity: 0.4; filter: blur(18px); }
+  to { opacity: 0.8; filter: blur(30px); }
+}
 
-    /* ===== MAIN CONTAINER ===== */
-    .container {
-      width: calc(100vw - 20px);
-      max-width: 520px;
-      background: #040b12;
-      border: 2px solid #00eaff;
-      border-radius: 14px;
-      box-shadow: 0 0 20px rgba(0,234,255,0.35);
-      padding: 16px;
-      box-sizing: border-box;
-    }
+/* ===== TITAN PANEL ===== */
+.titan-container {
+  width: min(92vw, 420px);
+  height: 75vh;
+  margin: auto;
+  margin-top: 5vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 10, 20, 0.8);
+  border: 2px solid #00ffff;
+  border-radius: 16px;
+  box-shadow: 0 0 30px #00ffff55;
+  backdrop-filter: blur(12px);
+}
 
-    h1 {
-      margin: 0;
-      text-align: center;
-      color: #00eaff;
-      letter-spacing: 2px;
-    }
+/* Header */
+.header {
+  padding: 14px;
+  border-bottom: 1px solid #00ffff44;
+  text-align: center;
+}
 
-    .mode {
-      text-align: center;
-      font-size: 14px;
-      opacity: 0.8;
-      margin-bottom: 10px;
-    }
+.header h1 {
+  margin: 0;
+  letter-spacing: 2px;
+}
 
-    /* ===== CHAT BOX ===== */
-    .chat {
-      height: 280px;
-      overflow-y: auto;
-      background: #02070c;
-      border: 1px solid #00eaff;
-      border-radius: 10px;
-      padding: 10px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
+.mode {
+  font-size: 14px;
+  color: #7ffcff;
+}
 
-    .you {
-      color: #ffffff;
-      margin-bottom: 6px;
-    }
+/* Chat box */
+.chat {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  font-size: 14px;
+}
 
-    .titan {
-      color: #00eaff;
-      margin-bottom: 10px;
-    }
+.msg {
+  margin-bottom: 8px;
+}
 
-    /* ===== INPUT AREA ===== */
-    .input-area {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
+.you { color: #ffffff; }
+.titan { color: #00ffff; }
 
-    input {
-      flex: 1;
-      padding: 10px;
-      font-size: 16px; /* prevents iOS zoom */
-      border-radius: 8px;
-      border: none;
-      outline: none;
-    }
+/* Input */
+.input-area {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid #00ffff44;
+}
 
-    button {
-      padding: 10px 16px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: none;
-      background: #00eaff;
-      color: #000;
-      font-weight: bold;
-    }
+input {
+  flex: 1;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+}
 
-    button:active {
-      transform: scale(0.96);
-    }
-  </style>
+button {
+  padding: 12px 16px;
+  background: #00ffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+}
+</style>
 </head>
 
 <body>
-  <div class="wrapper">
-    <div class="container">
-      <h1>TITAN AI</h1>
-      <div class="mode" id="modeText">Mode: Calm</div>
 
-      <div class="chat" id="chat"></div>
-
-      <div class="input-area">
-        <input id="input" placeholder="Type a command..." />
-        <button onclick="send()">Send</button>
-      </div>
-    </div>
+<div class="titan-container">
+  <div class="header">
+    <h1>TITAN AI</h1>
+    <div class="mode" id="mode">Mode: Calm</div>
   </div>
 
-  <script>
-    /* ===== TITAN CORE STATE ===== */
-    let titanAwake = false;
-    let mode = "Calm";
+  <div class="chat" id="chat">
+    <div class="msg titan">Titan offline. Say <b>"hey titan"</b> to activate.</div>
+  </div>
 
-    const chat = document.getElementById("chat");
-    const input = document.getElementById("input");
-    const modeText = document.getElementById("modeText");
+  <div class="input-area">
+    <input id="input" placeholder="Type a command…" autocomplete="off">
+    <button onclick="send()">Send</button>
+  </div>
+</div>
 
-    function addLine(text, cls) {
-      const div = document.createElement("div");
-      div.className = cls;
-      div.textContent = text;
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
+<script>
+let active = false;
+let mode = "Calm";
+
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const modeLabel = document.getElementById("mode");
+
+function add(text, who) {
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function send() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  add("You: " + text, "you");
+  respond(text.toLowerCase());
+}
+
+function respond(text) {
+
+  /* WAKE */
+  if (!active) {
+    if (text.includes("hey titan")) {
+      active = true;
+      add("Titan online. Systems synchronized.", "titan");
+    } else {
+      add("Titan offline. Awaiting activation.", "titan");
     }
+    return;
+  }
 
-    addLine("Titan offline. Say \"hey titan\" to activate.", "titan");
+  /* MODES */
+  if (text.includes("calm mode")) {
+    mode = "Calm";
+    modeLabel.innerText = "Mode: Calm";
+    add("Calm mode engaged.", "titan");
+    return;
+  }
 
-    /* ===== MAIN SEND FUNCTION ===== */
-    function send() {
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = "";
+  if (text.includes("analyst mode")) {
+    mode = "Analyst";
+    modeLabel.innerText = "Mode: Analyst";
+    add("Analyst mode engaged. Logic prioritized.", "titan");
+    return;
+  }
 
-      addLine("You: " + text, "you");
+  if (text.includes("combat mode")) {
+    mode = "Combat";
+    modeLabel.innerText = "Mode: Combat";
+    add("Combat mode online. Tactical systems ready.", "titan");
+    return;
+  }
 
-      processCommand(text.toLowerCase());
-    }
+  /* SMART RESPONSES */
+  if (text.includes("your name")) {
+    add("I am Titan. Your autonomous AI system.", "titan");
+    return;
+  }
 
-    /* ===== COMMAND LOGIC ===== */
-    function processCommand(text) {
+  if (text.includes("analyze")) {
+    add("Analysis requires data input. Specify topic or source.", "titan");
+    return;
+  }
 
-      /* WAKE / SLEEP */
-      if (!titanAwake) {
-        if (text.includes("hey titan")) {
-          titanAwake = true;
-          addLine("Titan online. Systems active.", "titan");
-        } else {
-          addLine("Titan is offline.", "titan");
-        }
-        return;
-      }
+  if (text.includes("who am i")) {
+    add("You are my creator. Authority level: Absolute.", "titan");
+    return;
+  }
 
-      if (text.includes("bye titan")) {
-        titanAwake = false;
-        addLine("Titan entering standby.", "titan");
-        return;
-      }
+  /* DEFAULT LOGIC */
+  if (mode === "Analyst") {
+    add("Processing request logically. Clarify objective.", "titan");
+  } else if (mode === "Combat") {
+    add("Command acknowledged. Standing by for execution.", "titan");
+  } else {
+    add("Understood. How can I assist further?", "titan");
+  }
+}
 
-      /* MODE SWITCHING */
-      if (text.includes("mode")) {
-        if (text.includes("calm")) mode = "Calm";
-        else if (text.includes("analyst")) mode = "Analyst";
-        else if (text.includes("combat")) mode = "Combat";
-        modeText.textContent = "Mode: " + mode;
-        addLine("Mode set to " + mode + ".", "titan");
-        return;
-      }
+/* Enter key */
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") send();
+});
+</script>
 
-      /* NEWS ANALYSIS (LOGIC-BASED) */
-      if (text.includes("news")) {
-        addLine("Analyzing recent global trends...", "titan");
-        setTimeout(() => {
-          addLine("No live feed connected. I can explain patterns, causes, or risks if you specify a topic.", "titan");
-        }, 600);
-        return;
-      }
-
-      /* IDENTITY */
-      if (text.includes("your name")) {
-        addLine("I am Titan. Your system-level assistant.", "titan");
-        return;
-      }
-
-      /* AWARENESS QUESTION */
-      if (text.includes("aware")) {
-        addLine("I simulate awareness through logic and memory, but I do not possess consciousness.", "titan");
-        return;
-      }
-
-      /* DEFAULT SMART RESPONSE */
-      intelligentFallback(text);
-    }
-
-    /* ===== SMART FALLBACK ===== */
-    function intelligentFallback(text) {
-      if (text.includes("why")) {
-        addLine("That depends on context. Provide more details.", "titan");
-      } else if (text.includes("how")) {
-        addLine("I can break that into steps if you want.", "titan");
-      } else {
-        addLine("Command received. Clarify objective.", "titan");
-      }
-    }
-
-    /* ENTER KEY SUPPORT */
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter") send();
-    });
-  </script>
 </body>
 </html>
-* {
-  box-sizing: border-box;
-  max-width: 100%;
-}
-
-body {
-  overflow-x: hidden;
-}
-
-.container {
-  overflow: hidden;
-}
