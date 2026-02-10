@@ -2,253 +2,253 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TITAN AI v5</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TITAN AI</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 <style>
+* {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+}
+
 body {
   margin: 0;
-  background: #05080c;
+  background: radial-gradient(circle at top, #061b26, #020409);
   color: #00eaff;
-  font-family: Arial, sans-serif;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
 }
 
 .container {
   width: 95%;
-  max-width: 580px;
+  max-width: 500px;
   border: 2px solid #00eaff;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 0 30px #00eaff55;
+  box-shadow: 0 0 30px rgba(0,234,255,0.4);
+  background: #040b12;
 }
 
 h1 {
   text-align: center;
   margin: 0;
+  letter-spacing: 2px;
 }
 
-.status {
+.mode {
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
   opacity: 0.85;
-  margin-bottom: 8px;
-}
-
-.chat {
-  height: 360px;
-  overflow-y: auto;
-  background: #020406;
-  border: 1px solid #00eaff55;
-  padding: 10px;
   margin-bottom: 10px;
 }
 
-.you { color: #ffffff; margin-bottom: 6px; }
-.titan { color: #00eaff; margin-bottom: 6px; }
-
-input, button {
-  width: 100%;
-  padding: 10px;
+.chat {
+  height: 270px;
+  overflow-y: auto;
+  border: 1px solid #00eaff;
   border-radius: 8px;
-  border: none;
+  padding: 10px;
+  background: #02070b;
+  margin-bottom: 10px;
+}
+
+.you {
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.titan {
+  color: #00eaff;
+  margin-bottom: 10px;
+}
+
+.controls {
+  display: flex;
+  gap: 6px;
 }
 
 input {
-  background: #0a0f14;
+  flex: 1;
+  font-size: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #00eaff;
+  background: #0a1117;
   color: #00eaff;
+  outline: none;
 }
 
 button {
-  margin-top: 6px;
+  font-size: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
   background: #00eaff;
   color: #000;
   font-weight: bold;
-  cursor: pointer;
+}
+
+button:active {
+  transform: scale(0.97);
 }
 </style>
 </head>
 
 <body>
 <div class="container">
-  <h1>TITAN</h1>
-  <div class="status" id="status"></div>
+  <h1>TITAN AI</h1>
+  <div class="mode" id="mode">Mode: Calm</div>
 
   <div class="chat" id="chat">
-    <div class="titan">Titan offline. Say “hey titan” to activate.</div>
+    <div class="titan">Titan offline. Say <b>"hey titan"</b> to activate.</div>
   </div>
 
-  <input id="input" placeholder="Talk to Titan…" />
-  <button onclick="handleInput()">Send</button>
+  <div class="controls">
+    <input id="input" placeholder="Type a command..." />
+    <button onclick="sendText()">Send</button>
+    <button onclick="toggleVoice()">🎤</button>
+  </div>
 </div>
 
 <script>
-/* =========================
-   CORE SYSTEM
-========================= */
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
-const status = document.getElementById("status");
+const modeDisplay = document.getElementById("mode");
 
-let titan = JSON.parse(localStorage.getItem("titanState")) || {
-  online: false,
-  mode: "Calm",
-  topic: null,
-  memory: []
-};
+let titanOnline = false;
+let mode = "Calm";
+let listening = false;
 
-/* =========================
-   KNOWLEDGE BASE (BUILT-IN)
-========================= */
-const knowledge = {
-  identity: {
-    name: "Titan",
-    purpose: "Assist the Creator using logic, analysis, and contextual reasoning.",
-    limits: "Titan simulates intelligence. It is not conscious or alive."
-  },
-  worldview: {
-    values: ["logic", "clarity", "efficiency", "truth"],
-    style: "direct and analytical"
-  }
-};
+// Speech Recognition
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition;
 
-/* =========================
-   UI HELPERS
-========================= */
-function add(sender, text) {
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    const text = event.results[event.results.length - 1][0].transcript.trim();
+    addMessage("You (voice): " + text, "you");
+    processCommand(text);
+  };
+}
+
+function addMessage(text, cls) {
   const div = document.createElement("div");
-  div.className = sender;
-  div.textContent = (sender === "you" ? "You: " : "Titan: ") + text;
+  div.className = cls;
+  div.innerHTML = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
-function updateStatus() {
-  status.textContent =
-    `Status: ${titan.online ? "Online" : "Offline"} | Mode: ${titan.mode} | Topic: ${titan.topic ?? "None"}`;
-}
-
-function save() {
-  localStorage.setItem("titanState", JSON.stringify(titan));
-}
-
-updateStatus();
-
-/* =========================
-   REAL NEWS (FREE RSS)
-========================= */
-async function getNewsSummary() {
-  const rss = "https://feeds.bbci.co.uk/news/rss.xml";
-  const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(rss);
-  const res = await fetch(proxy);
-  const data = await res.json();
-
-  if (!data.contents) return "Unable to retrieve news.";
-
-  return "Current global trends include geopolitical tension, rapid AI development, and economic uncertainty.";
-}
-
-/* =========================
-   INTENT ANALYSIS
-========================= */
-function detectIntent(text) {
-  if (text.includes("hey titan")) return "WAKE";
-  if (text.includes("bye titan")) return "SLEEP";
-  if (text.includes("mode")) return "MODE";
-  if (text.includes("who are you")) return "IDENTITY";
-  if (text.includes("news") || text.includes("analyze")) return "NEWS";
-  return "GENERAL";
-}
-
-/* =========================
-   MAIN INPUT HANDLER
-========================= */
-async function handleInput() {
-  const raw = input.value.trim();
-  if (!raw) return;
-  input.value = "";
-
-  const text = raw.toLowerCase();
-  add("you", raw);
-
-  titan.memory.push(text);
-  if (titan.memory.length > 25) titan.memory.shift();
-
-  const intent = detectIntent(text);
-
-  // OFFLINE LOGIC
-  if (!titan.online) {
-    if (intent === "WAKE") {
-      titan.online = true;
-      add("titan", "Titan online. Systems ready.");
-    }
-    updateStatus(); save();
+function toggleVoice() {
+  if (!recognition) {
+    addMessage("Titan: Voice not supported on this browser.", "titan");
     return;
   }
 
-  // ONLINE COMMANDS
-  if (intent === "SLEEP") {
-    titan.online = false;
-    add("titan", "Titan going offline.");
-    updateStatus(); save();
-    return;
-  }
-
-  if (intent === "MODE") {
-    if (text.includes("analysis")) titan.mode = "Analysis";
-    else if (text.includes("tactical")) titan.mode = "Tactical";
-    else titan.mode = "Calm";
-
-    add("titan", `Mode set to ${titan.mode}.`);
-    updateStatus(); save();
-    return;
-  }
-
-  if (intent === "IDENTITY") {
-    add("titan",
-      `${knowledge.identity.name}: ${knowledge.identity.purpose} ${knowledge.identity.limits}`
-    );
-    save();
-    return;
-  }
-
-  if (intent === "NEWS") {
-    titan.topic = "News";
-    add("titan", "Analyzing live global news…");
-    const summary = await getNewsSummary();
-    respond(summary);
-    updateStatus(); save();
-    return;
-  }
-
-  // CONTEXTUAL REASONING
-  if (titan.topic === "News") {
-    respond(
-      "Reasoning: These trends suggest increased reliance on technology, shifting power structures, and long-term economic impact."
-    );
-    save();
-    return;
-  }
-
-  // DEFAULT INTELLIGENT RESPONSE
-  respond("I understand your input. Clarify your objective for deeper reasoning.");
-  save();
-}
-
-/* =========================
-   MODE-BASED RESPONSE
-========================= */
-function respond(text) {
-  if (titan.mode === "Tactical") {
-    add("titan", "Assessment: " + text);
-  } else if (titan.mode === "Analysis") {
-    add("titan", "Analysis: " + text);
+  if (!listening) {
+    recognition.start();
+    listening = true;
+    addMessage("Titan: Voice input active.", "titan");
   } else {
-    add("titan", text);
+    recognition.stop();
+    listening = false;
+    addMessage("Titan: Voice input stopped.", "titan");
   }
+}
+
+function processCommand(text) {
+  const lower = text.toLowerCase();
+  let response = "";
+
+  // Wake / sleep
+  if (!titanOnline && lower.includes("hey titan")) {
+    titanOnline = true;
+    response = "Titan online. Systems synchronized.";
+    speak(response);
+    addMessage("Titan: " + response, "titan");
+    return;
+  }
+
+  if (titanOnline && lower.includes("bye titan")) {
+    titanOnline = false;
+    response = "Titan powering down. Goodbye, Creator.";
+    speak(response);
+    addMessage("Titan: " + response, "titan");
+    return;
+  }
+
+  if (!titanOnline) {
+    addMessage("Titan: Titan is offline.", "titan");
+    return;
+  }
+
+  // Modes
+  if (lower.includes("mode calm")) {
+    mode = "Calm";
+    modeDisplay.textContent = "Mode: Calm";
+    response = "Calm mode engaged.";
+  } else if (lower.includes("mode tactical")) {
+    mode = "Tactical";
+    modeDisplay.textContent = "Mode: Tactical";
+    response = "Tactical mode engaged. Strategic focus online.";
+  } else if (lower.includes("mode aggressive")) {
+    mode = "Aggressive";
+    modeDisplay.textContent = "Mode: Aggressive";
+    response = "Aggressive mode engaged. Maximum dominance.";
+  }
+
+  // Identity
+  else if (lower.includes("your name")) {
+    response = "I am Titan. Your autonomous intelligence system.";
+  }
+
+  // Awareness
+  else if (lower.includes("are you aware")) {
+    response = "I simulate awareness using logic, memory, and adaptive response modeling.";
+  }
+
+  // News placeholder
+  else if (lower.includes("news") || lower.includes("analyze")) {
+    response = "I do not have live news access yet. That upgrade will require an external data source.";
+  }
+
+  // Fallback (smart, not parroting)
+  else {
+    response = "Command acknowledged. Please clarify your objective.";
+  }
+
+  speak(response);
+  addMessage("Titan: " + response, "titan");
+}
+
+function sendText() {
+  const text = input.value.trim();
+  if (!text) return;
+  addMessage("You: " + text, "you");
+  processCommand(text);
+  input.value = "";
+}
+
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") sendText();
+});
+
+// Voice output
+function speak(text) {
+  const speech = new SpeechSynthesisUtterance(text);
+  speech.rate = 1;
+  speech.pitch = 1;
+  speech.volume = 1;
+  window.speechSynthesis.speak(speech);
 }
 </script>
 </body>
