@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TITAN AI</title>
+<title>TITAN AI v3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 <style>
@@ -19,7 +19,7 @@ body {
 
 .container {
   width: 95%;
-  max-width: 520px;
+  max-width: 540px;
   border: 2px solid #00eaff;
   border-radius: 14px;
   padding: 16px;
@@ -33,14 +33,14 @@ h1 {
   letter-spacing: 2px;
 }
 
-.mode {
+.status {
   text-align: center;
   font-size: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .chat {
-  height: 280px;
+  height: 300px;
   overflow-y: auto;
   border: 1px solid #00eaff;
   border-radius: 8px;
@@ -81,27 +81,34 @@ button {
 <body>
 <div class="container">
   <h1>TITAN AI</h1>
-  <div class="mode" id="mode">Mode: Analyst</div>
+  <div class="status" id="status">Offline · Mode: Analyst</div>
 
   <div class="chat" id="chat">
-    <div class="titan">Titan offline. Say <b>"hey titan"</b> to activate.</div>
+    <div class="titan">Titan offline. Say <b>“hey titan”</b>.</div>
   </div>
 
   <div class="controls">
-    <input id="input" placeholder="Type a command..." />
-    <button onclick="sendText()">Send</button>
+    <input id="input" placeholder="Type a command…" />
+    <button onclick="send()">Send</button>
   </div>
 </div>
 
 <script>
+// ===== CORE STATE =====
+let online = false;
+let mode = "Analyst";
+let memory = [];
+const MEMORY_LIMIT = 6;
+
+// 🔑 News API (optional)
+const NEWS_API_KEY = "PASTE_API_KEY_HERE";
+
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
-let titanOnline = false;
+const status = document.getElementById("status");
 
-// 🔑 ADD YOUR API KEY HERE (later)
-const NEWS_API_KEY = "PASTE_YOUR_API_KEY_HERE";
-
-function addMessage(text, cls) {
+// ===== UTILITIES =====
+function add(text, cls) {
   const div = document.createElement("div");
   div.className = cls;
   div.innerHTML = text;
@@ -109,74 +116,120 @@ function addMessage(text, cls) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-function speak(text) {
-  const s = new SpeechSynthesisUtterance(text);
-  window.speechSynthesis.speak(s);
+function remember(role, text) {
+  memory.push({ role, text });
+  if (memory.length > MEMORY_LIMIT) memory.shift();
 }
 
+// ===== INTENT DETECTION =====
+function detectIntent(text) {
+  text = text.toLowerCase();
+
+  if (text.includes("hey titan")) return "wake";
+  if (text.includes("bye titan")) return "sleep";
+  if (text.includes("news") || text.includes("world")) return "news";
+  if (text.includes("mode")) return "mode";
+  if (text.includes("your name")) return "identity";
+  if (text.includes("are you aware")) return "awareness";
+
+  return "general";
+}
+
+// ===== PERSONALITY ENGINE =====
+function personalityResponse(base) {
+  if (mode === "Tactical") return "Strategic assessment: " + base;
+  if (mode === "Aggressive") return "Direct response: " + base;
+  return base;
+}
+
+// ===== NEWS SYSTEM =====
 async function analyzeNews() {
   if (NEWS_API_KEY.includes("PASTE")) {
-    addMessage("Titan: News system not configured. API key required.", "titan");
-    return;
+    return "News systems are not configured yet.";
   }
 
-  addMessage("Titan: Accessing global news feeds…", "titan");
-
-  const url = `https://newsapi.org/v2/top-headlines?language=en&pageSize=5&apiKey=${NEWS_API_KEY}`;
+  const url = `https://newsapi.org/v2/top-headlines?language=en&pageSize=3&apiKey=${NEWS_API_KEY}`;
   const res = await fetch(url);
   const data = await res.json();
 
-  if (!data.articles) {
-    addMessage("Titan: News retrieval failed.", "titan");
-    return;
-  }
+  if (!data.articles) return "Unable to retrieve news.";
 
-  let analysis = "Here are the most significant developments:<br><br>";
-
+  let summary = "Global situation overview:<br><br>";
   data.articles.forEach((a, i) => {
-    analysis += `<b>${i+1}. ${a.title}</b><br>`;
-    analysis += `Impact: This may influence public awareness, policy, or global stability.<br><br>`;
+    summary += `<b>${i+1}. ${a.title}</b><br>Impact: Potential global or social influence.<br><br>`;
   });
 
-  addMessage("Titan: " + analysis, "titan");
-  speak("News analysis complete.");
+  return summary;
 }
 
-function processCommand(text) {
-  const lower = text.toLowerCase();
+// ===== MAIN BRAIN =====
+async function think(inputText) {
+  const intent = detectIntent(inputText);
+  let response = "";
 
-  if (!titanOnline && lower.includes("hey titan")) {
-    titanOnline = true;
-    addMessage("Titan: Online. Analyst systems ready.", "titan");
-    speak("Titan online.");
-    return;
+  if (intent === "wake") {
+    online = true;
+    status.textContent = "Online · Mode: " + mode;
+    return "Titan online. Systems stable.";
   }
 
-  if (!titanOnline) {
-    addMessage("Titan: Offline.", "titan");
-    return;
+  if (!online) return "Titan is offline.";
+
+  if (intent === "sleep") {
+    online = false;
+    status.textContent = "Offline · Mode: " + mode;
+    return "Powering down.";
   }
 
-  if (lower.includes("news") || lower.includes("analyze")) {
-    analyzeNews();
-    return;
+  if (intent === "mode") {
+    if (inputText.includes("tactical")) mode = "Tactical";
+    else if (inputText.includes("aggressive")) mode = "Aggressive";
+    else mode = "Analyst";
+
+    status.textContent = "Online · Mode: " + mode;
+    return "Mode switched to " + mode + ".";
   }
 
-  addMessage("Titan: Command received. Clarify intent.", "titan");
+  if (intent === "identity") {
+    return "I am Titan, a modular AI system designed to assist and analyze.";
+  }
+
+  if (intent === "awareness") {
+    return "I do not possess consciousness. I simulate reasoning using structured logic and memory.";
+  }
+
+  if (intent === "news") {
+    return await analyzeNews();
+  }
+
+  // Context-aware fallback
+  if (memory.length > 0) {
+    return "Based on our recent conversation, please clarify your objective.";
+  }
+
+  return "Command received. Awaiting clarification.";
 }
 
-function sendText() {
+// ===== INPUT =====
+async function send() {
   const text = input.value.trim();
   if (!text) return;
-  addMessage("You: " + text, "you");
-  processCommand(text);
+
+  add("You: " + text, "you");
+  remember("you", text);
+
+  const reply = await think(text);
+  const finalReply = personalityResponse(reply);
+
+  add("Titan: " + finalReply, "titan");
+  remember("titan", finalReply);
+
   input.value = "";
 }
 
 input.addEventListener("keydown", e => {
-  if (e.key === "Enter") sendText();
+  if (e.key === "Enter") send();
 });
 </script>
 </body>
 </html>
-const NEWS_API_KEY = "ac7f2f44d6134a5fb77112bcfe07b64f";
