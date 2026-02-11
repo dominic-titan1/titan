@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TITAN</title>
 
 <style>
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #0b1020, #000);
+  background: radial-gradient(circle at top, #0b1225, #000);
   font-family: Arial, sans-serif;
   color: #00ffff;
   display: flex;
@@ -17,7 +17,7 @@ body {
   height: 100vh;
 }
 
-#core {
+#app {
   width: 92%;
   max-width: 420px;
   height: 88vh;
@@ -28,13 +28,13 @@ body {
   flex-direction: column;
 }
 
-#top {
+#header {
   text-align: center;
   padding: 12px;
   border-bottom: 1px solid #00ffff;
 }
 
-#top h1 {
+#header h1 {
   margin: 0;
   letter-spacing: 4px;
 }
@@ -44,7 +44,7 @@ body {
   opacity: 0.85;
 }
 
-#log {
+#chat {
   flex: 1;
   padding: 10px;
   overflow-y: auto;
@@ -64,10 +64,10 @@ body {
 
 .titan {
   background: #001a1a;
-  box-shadow: 0 0 10px #00ffff inset;
+  box-shadow: inset 0 0 10px #00ffff;
 }
 
-#controls {
+#inputBar {
   display: flex;
   gap: 6px;
   padding: 10px;
@@ -96,41 +96,39 @@ button {
 
 <body>
 
-<div id="core">
-  <div id="top">
+<div id="app">
+  <div id="header">
     <h1>TITAN</h1>
-    <div id="status">Mode: Standby | Game AI: OFF</div>
+    <div id="status">Mode: Standby | Phase: Idle</div>
   </div>
 
-  <div id="log"></div>
+  <div id="chat"></div>
 
-  <div id="controls">
+  <div id="inputBar">
     <input id="input" placeholder="say or type 'hey titan'..." />
     <button onclick="listen()">🎤</button>
   </div>
 </div>
 
 <script>
-/* ================= CORE STATE ================= */
+/* ================= STATE ================= */
 let active = false;
-let mode = "Standby";
+let mode = "Calm";
 
-let gameState = {
-  phase: "idle",     // idle | mission | combat | analysis
-  objective: null,
+let state = {
+  phase: "Idle",
   threat: 0,
   resources: 100
 };
 
-/* ================= SPEECH ================= */
+/* ================= VOICE ================= */
 const synth = speechSynthesis;
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recog;
+let recog = SR ? new SR() : null;
 
-if (SR) {
-  recog = new SR();
+if (recog) {
   recog.lang = "en-US";
-  recog.onresult = e => handle(e.results[0][0].transcript.toLowerCase());
+  recog.onresult = e => handle(e.results[0][0].transcript);
 }
 
 function speak(text) {
@@ -141,7 +139,7 @@ function speak(text) {
 }
 
 /* ================= UI ================= */
-const log = document.getElementById("log");
+const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const status = document.getElementById("status");
 
@@ -149,49 +147,61 @@ function add(text, who) {
   const d = document.createElement("div");
   d.className = "msg " + who;
   d.textContent = text;
-  log.appendChild(d);
-  log.scrollTop = log.scrollHeight;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
 }
 
-/* ================= GAME AI ================= */
-function gameThink(text) {
-  // Mode switches
-  if (text.includes("calm")) mode = "Calm";
-  if (text.includes("combat")) mode = "Combat";
-  if (text.includes("analyze")) mode = "Analyst";
+/* ================= INTELLIGENCE ================= */
+function normalize(text) {
+  return text.toLowerCase().trim();
+}
 
-  // Start mission
-  if (text.includes("mission") || text.includes("start")) {
-    gameState.phase = "mission";
-    gameState.objective = "Complete primary objective";
-    return "Mission initialized. Awaiting parameters.";
+function think(raw) {
+  const text = normalize(raw);
+
+  /* MODE SWITCH */
+  if (text.includes("combat")) {
+    mode = "Combat";
+    return "Combat mode engaged.";
   }
 
-  // Threat detection
-  if (text.includes("enemy") || text.includes("attack")) {
-    gameState.phase = "combat";
-    gameState.threat += 25;
-
-    if (gameState.threat > 50) {
-      return "High threat detected. Recommending evasive action.";
-    }
-    return "Threat detected. Engaging defensively.";
+  if (text.includes("calm")) {
+    mode = "Calm";
+    return "Calm mode restored.";
   }
 
-  // Resource logic
+  /* MISSION */
+  if (text.includes("start") && text.includes("mission")) {
+    state.phase = "Mission";
+    return "Mission started. Awaiting developments.";
+  }
+
+  /* ENEMY */
+  if (text.includes("enemy")) {
+    state.phase = "Combat";
+    state.threat += 30;
+    return state.threat > 50
+      ? "High threat detected. Defensive tactics advised."
+      : "Enemy detected. Monitoring engagement.";
+  }
+
+  /* STATUS */
   if (text.includes("status")) {
-    return `Resources at ${gameState.resources}%. Threat level ${gameState.threat}.`;
+    return `Phase: ${state.phase}. Threat: ${state.threat}. Resources: ${state.resources}%.`;
   }
 
-  // Strategy
+  /* STRATEGY */
   if (text.includes("what should we do")) {
-    if (gameState.phase === "combat")
-      return "Flank, reduce exposure, conserve energy.";
-    if (gameState.phase === "mission")
-      return "Proceed carefully. Gather intelligence first.";
+    if (state.phase === "Combat") {
+      return "Reduce exposure. Maintain mobility. Preserve resources.";
+    }
+    if (state.phase === "Mission") {
+      return "Proceed cautiously. Gather intelligence.";
+    }
+    return "No immediate action required.";
   }
 
-  return "Command acknowledged.";
+  return "Command received. Standing by.";
 }
 
 /* ================= INPUT ================= */
@@ -199,25 +209,24 @@ function handle(text) {
   add(text, "user");
 
   if (!active) {
-    if (text.includes("hey titan")) {
+    if (normalize(text).includes("hey titan")) {
       active = true;
-      status.textContent = "Mode: Online | Game AI: ACTIVE";
-      add("Titan online. Game AI ready.", "titan");
-      speak("Titan online. Game AI ready.");
+      add("Titan online. Systems ready.", "titan");
+      speak("Titan online. Systems ready.");
     } else {
       add("Say 'hey titan' to activate.", "titan");
     }
     return;
   }
 
-  const reply = gameThink(text);
-  status.textContent = `Mode: ${mode} | Phase: ${gameState.phase}`;
+  const reply = think(text);
+  status.textContent = `Mode: ${mode} | Phase: ${state.phase}`;
   add(reply, "titan");
   speak(reply);
 }
 
 function send() {
-  const t = input.value.trim().toLowerCase();
+  const t = input.value;
   if (!t) return;
   input.value = "";
   handle(t);
