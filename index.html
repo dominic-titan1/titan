@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TITAN</title>
 
 <style>
 body {
   margin: 0;
+  background: radial-gradient(circle at top, #0b1020, #000);
   font-family: Arial, sans-serif;
-  background: radial-gradient(circle at top, #0a0f1f, #000);
   color: #00ffff;
   display: flex;
   justify-content: center;
@@ -17,35 +17,34 @@ body {
   height: 100vh;
 }
 
-#panel {
-  width: 90%;
+#core {
+  width: 92%;
   max-width: 420px;
-  height: 85vh;
+  height: 88vh;
   border: 2px solid #00ffff;
-  border-radius: 16px;
-  box-shadow: 0 0 25px #00ffff;
+  border-radius: 18px;
+  box-shadow: 0 0 30px #00ffff;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
-#header {
+#top {
   text-align: center;
   padding: 12px;
   border-bottom: 1px solid #00ffff;
 }
 
-#header h1 {
+#top h1 {
   margin: 0;
   letter-spacing: 4px;
 }
 
-#mode {
+#status {
   font-size: 12px;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-#chat {
+#log {
   flex: 1;
   padding: 10px;
   overflow-y: auto;
@@ -58,22 +57,21 @@ body {
   max-width: 85%;
 }
 
-.you {
+.user {
   background: #003333;
-  align-self: flex-end;
   margin-left: auto;
 }
 
 .titan {
   background: #001a1a;
-  box-shadow: 0 0 8px #00ffff inset;
+  box-shadow: 0 0 10px #00ffff inset;
 }
 
-#inputBar {
-  border-top: 1px solid #00ffff;
-  padding: 10px;
+#controls {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid #00ffff;
 }
 
 input {
@@ -83,7 +81,6 @@ input {
   border: 1px solid #00ffff;
   color: #00ffff;
   border-radius: 8px;
-  outline: none;
 }
 
 button {
@@ -99,131 +96,135 @@ button {
 
 <body>
 
-<div id="panel">
-  <div id="header">
+<div id="core">
+  <div id="top">
     <h1>TITAN</h1>
-    <div id="mode">Mode: Calm</div>
+    <div id="status">Mode: Standby | Game AI: OFF</div>
   </div>
 
-  <div id="chat"></div>
+  <div id="log"></div>
 
-  <div id="inputBar">
-    <input id="input" placeholder="Say or type 'hey titan'..." />
-    <button onclick="startListening()">🎤</button>
+  <div id="controls">
+    <input id="input" placeholder="say or type 'hey titan'..." />
+    <button onclick="listen()">🎤</button>
   </div>
 </div>
 
 <script>
+/* ================= CORE STATE ================= */
 let active = false;
-let mode = "Calm";
-let goal = null;
+let mode = "Standby";
 
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-const modeLabel = document.getElementById("mode");
+let gameState = {
+  phase: "idle",     // idle | mission | combat | analysis
+  objective: null,
+  threat: 0,
+  resources: 100
+};
 
-/* ---------- SPEECH ---------- */
-const synth = window.speechSynthesis;
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
+/* ================= SPEECH ================= */
+const synth = speechSynthesis;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog;
 
-let recognition;
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.continuous = false;
-  recognition.interimResults = false;
-
-  recognition.onresult = e => {
-    const text = e.results[0][0].transcript.toLowerCase();
-    handleInput(text);
-  };
+if (SR) {
+  recog = new SR();
+  recog.lang = "en-US";
+  recog.onresult = e => handle(e.results[0][0].transcript.toLowerCase());
 }
 
 function speak(text) {
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.95;
-  utter.pitch = 0.9;
-  synth.speak(utter);
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.95;
+  u.pitch = 0.9;
+  synth.speak(u);
 }
 
-/* ---------- UI ---------- */
+/* ================= UI ================= */
+const log = document.getElementById("log");
+const input = document.getElementById("input");
+const status = document.getElementById("status");
+
 function add(text, who) {
-  const div = document.createElement("div");
-  div.className = "msg " + who;
-  div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+  const d = document.createElement("div");
+  d.className = "msg " + who;
+  d.textContent = text;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
 }
 
-/* ---------- INTELLIGENCE ---------- */
-function think(text) {
-  if (text.includes("calm")) {
-    mode = "Calm";
-    modeLabel.textContent = "Mode: Calm";
-    return "Calm mode engaged.";
+/* ================= GAME AI ================= */
+function gameThink(text) {
+  // Mode switches
+  if (text.includes("calm")) mode = "Calm";
+  if (text.includes("combat")) mode = "Combat";
+  if (text.includes("analyze")) mode = "Analyst";
+
+  // Start mission
+  if (text.includes("mission") || text.includes("start")) {
+    gameState.phase = "mission";
+    gameState.objective = "Complete primary objective";
+    return "Mission initialized. Awaiting parameters.";
   }
 
-  if (text.includes("analyst")) {
-    mode = "Analyst";
-    modeLabel.textContent = "Mode: Analyst";
-    return "Analyst mode engaged.";
+  // Threat detection
+  if (text.includes("enemy") || text.includes("attack")) {
+    gameState.phase = "combat";
+    gameState.threat += 25;
+
+    if (gameState.threat > 50) {
+      return "High threat detected. Recommending evasive action.";
+    }
+    return "Threat detected. Engaging defensively.";
   }
 
-  if (text.includes("build") || text.includes("make")) {
-    goal = text;
-    return "Goal accepted. Say analyze when ready.";
+  // Resource logic
+  if (text.includes("status")) {
+    return `Resources at ${gameState.resources}%. Threat level ${gameState.threat}.`;
   }
 
-  if (text.includes("analyze")) {
-    if (!goal) return "No goal detected.";
-    return "Analysis complete. Ask how or why.";
+  // Strategy
+  if (text.includes("what should we do")) {
+    if (gameState.phase === "combat")
+      return "Flank, reduce exposure, conserve energy.";
+    if (gameState.phase === "mission")
+      return "Proceed carefully. Gather intelligence first.";
   }
 
-  if (text.includes("why")) {
-    return "Because understanding intent improves outcomes.";
-  }
-
-  if (text.includes("how")) {
-    return "By breaking problems into steps and refining each one.";
-  }
-
-  if (text.includes("upgrade")) {
-    return "Upgrade acknowledged. Intelligence increasing.";
-  }
-
-  return "Understood. Continue.";
+  return "Command acknowledged.";
 }
 
-/* ---------- INPUT ---------- */
-function handleInput(text) {
-  add(text, "you");
+/* ================= INPUT ================= */
+function handle(text) {
+  add(text, "user");
 
   if (!active) {
     if (text.includes("hey titan")) {
       active = true;
-      add("Titan online.", "titan");
-      speak("Titan online.");
+      status.textContent = "Mode: Online | Game AI: ACTIVE";
+      add("Titan online. Game AI ready.", "titan");
+      speak("Titan online. Game AI ready.");
     } else {
       add("Say 'hey titan' to activate.", "titan");
     }
     return;
   }
 
-  const reply = think(text);
+  const reply = gameThink(text);
+  status.textContent = `Mode: ${mode} | Phase: ${gameState.phase}`;
   add(reply, "titan");
   speak(reply);
 }
 
 function send() {
-  const text = input.value.trim().toLowerCase();
-  if (!text) return;
+  const t = input.value.trim().toLowerCase();
+  if (!t) return;
   input.value = "";
-  handleInput(text);
+  handle(t);
 }
 
-function startListening() {
-  if (recognition) recognition.start();
+function listen() {
+  if (recog) recog.start();
 }
 
 input.addEventListener("keydown", e => {
