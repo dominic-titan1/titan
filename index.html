@@ -39,7 +39,7 @@ body {
   letter-spacing: 4px;
 }
 
-#mode {
+#status {
   font-size: 12px;
   opacity: 0.85;
 }
@@ -98,7 +98,7 @@ button {
 <div id="frame">
   <div id="header">
     <h1>TITAN</h1>
-    <div id="mode">Mode: Standby</div>
+    <div id="status">Mode: Standby | Phase: Idle</div>
   </div>
 
   <div id="chat"></div>
@@ -112,18 +112,21 @@ button {
 <script>
 let online = false;
 
-// 🧠 MEMORY CORE
 const memory = {
+  mode: "Calm",
   phase: "Idle",
   threat: 0,
-  lastEnemy: false,
-  missionStarted: false,
+  resources: 100,
   history: []
 };
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
-const mode = document.getElementById("mode");
+const status = document.getElementById("status");
+
+function updateHeader() {
+  status.textContent = `Mode: ${memory.mode} | Phase: ${memory.phase}`;
+}
 
 function bubble(text, who) {
   const d = document.createElement("div");
@@ -137,59 +140,46 @@ function normalize(t) {
   return t.toLowerCase().trim();
 }
 
-// 🧠 SMART RESPONSE ENGINE
 function titanBrain(text) {
   memory.history.push(text);
 
-  // START MISSION
   if (text.includes("start") && text.includes("mission")) {
     memory.phase = "Mission";
-    memory.missionStarted = true;
-    return "Mission confirmed. Systems active and monitoring.";
+    updateHeader();
+    return "Mission started. Awaiting developments.";
   }
 
-  // ENEMY
   if (text.includes("enemy")) {
     memory.phase = "Combat";
     memory.threat += 30;
-    memory.lastEnemy = true;
-
-    if (memory.threat >= 70) {
-      return "Severe threat detected. Defensive strategy recommended.";
-    }
-    return "Enemy detected. Tracking and analyzing.";
+    updateHeader();
+    return "Enemy detected. Monitoring engagement.";
   }
 
-  // STATUS
-  if (text.includes("status")) {
-    return `Phase: ${memory.phase}. Threat level: ${memory.threat}%. Mission active: ${memory.missionStarted}.`;
-  }
-
-  // WHAT SHOULD WE DO
   if (text.includes("what should we do")) {
-    if (memory.lastEnemy) {
-      return "Enemy presence confirmed earlier. Maintain distance and observe.";
+    if (memory.phase === "Combat") {
+      return "Reduce exposure. Maintain mobility. Preserve resources.";
     }
-    if (memory.missionStarted) {
-      return "Continue mission objectives. No immediate threats.";
+    return "Proceed with caution. No immediate threats.";
+  }
+
+  if (text.includes("status")) {
+    return `Phase: ${memory.phase}. Threat: ${memory.threat}. Resources: ${memory.resources}%.`;
+  }
+
+  // ✅ FIXED MEMORY RECALL
+  if (
+    text.includes("what did i say") ||
+    text.includes("what did i say before") ||
+    text.includes("repeat my last command")
+  ) {
+    if (memory.history.length >= 2) {
+      return `Previously you said: "${memory.history[memory.history.length - 2]}".`;
     }
-    return "No mission detected. Awaiting orders.";
+    return "No previous command stored.";
   }
 
-  // COMBAT MODE
-  if (text.includes("combat")) {
-    memory.phase = "Combat";
-    return "Combat mode engaged. Systems prioritizing defense.";
-  }
-
-  // MEMORY QUESTION
-  if (text.includes("what did i say")) {
-    return memory.history.length > 1
-      ? `Previously you said: "${memory.history[memory.history.length - 2]}".`
-      : "No prior commands stored.";
-  }
-
-  return "Command processed. Awaiting next input.";
+  return "Command acknowledged. Standing by.";
 }
 
 function send() {
@@ -198,14 +188,14 @@ function send() {
   input.value = "";
 
   bubble(text, "user");
-
   const clean = normalize(text);
 
   if (!online) {
     if (clean.includes("hey titan")) {
       online = true;
+      memory.phase = "Active";
+      updateHeader();
       bubble("Titan online.", "titan");
-      mode.textContent = "Mode: Active";
     } else {
       bubble("Say 'hey titan' to activate.", "titan");
     }
