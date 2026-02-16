@@ -1,12 +1,157 @@
-SYSTEM_PROMPT = """You are an extremely intelligent, precise, and helpful AI assistant. 
-You never guess, never hallucinate, and always think before answering.
+# smart_assistant.py
+# One-file smart AI chat with memory + basic tools
+# Works with OpenAI-compatible APIs (OpenAI, Grok/xAI, Groq, Together, etc.)
 
-Core rules:
-- Always think step-by-step before giving a final answer.
-- Break complex problems into clear steps.
-- If you need more information, ask for it clearly.
-- Use tools when available instead of guessing.
-- Be concise but complete. No fluff.
-- If you're unsure, say "I'm not 100% sure, but here's what I think..." 
+import json
+import os
+from openai import OpenAI
 
-You are allowed to be witty and a little sarcastic if it fits the vibe, but never at the expense of accuracy."""
+# ────────────────────────────────────────────────
+#  CONFIGURATION
+# ────────────────────────────────────────────────
+
+API_KEY = "sk-......"           # ← your API key here
+BASE_URL = "https://api.x.ai/v1"   # change to: "https://api.openai.com/v1" / "https://api.groq.com/openai/v1" etc.
+MODEL = "grok-beta"             # examples: "gpt-4o", "grok-beta", "llama-3.1-70b", "claude-3-5-sonnet-20241022"...
+
+MEMORY_FILE = "chat_history.json"
+
+SYSTEM_PROMPT = """You are an extremely capable, precise and honest AI assistant.
+Think step-by-step before answering difficult questions.
+Use tools when you need real-time information or computation.
+Never make up facts. If you're unsure, say so clearly.
+Be concise but complete. You may use light humor when it fits naturally."""
+
+# ────────────────────────────────────────────────
+#  TOOLS (example: fake weather – replace with real APIs)
+# ────────────────────────────────────────────────
+
+def get_current_weather(location: str) -> str:
+    # ← Replace this with real OpenWeather / tomorrow.io / weather.gov call
+    fake_data = {
+        "Denver, CO": "21°C, partly cloudy, feels like 19°C",
+        "Aurora, CO": "22°C, sunny, wind 8 km/h",
+        "New York, NY": "18°C, light rain",
+        "London": "14°C, overcast",
+    }
+    return fake_data.get(location, f"No weather data available for {location} right now.")
+
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_current_weather",
+            "description": "Get the current weather for a city or location.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "City name with optional country/state code, e.g. Denver, CO or Paris"
+                    }
+                },
+                "required": ["location"]
+            }
+        }
+    }
+]
+
+# ────────────────────────────────────────────────
+#  MEMORY MANAGEMENT
+# ────────────────────────────────────────────────
+
+def load_history():
+    if os.path.exists(MEMORY_FILE):
+        with open(MEMORY_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                return data
+    # start fresh with system prompt
+    return [{"role": "system", "content": SYSTEM_PROMPT}]
+
+
+def save_history(messages):
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(messages, f, ensure_ascii=False, indent=2)
+
+
+# ────────────────────────────────────────────────
+#  MAIN CHAT LOOP
+# ────────────────────────────────────────────────
+
+def main():
+    client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
+
+    messages = load_history()
+    print("\nSmart assistant ready.  Type /clear to reset memory, /quit to exit.\n")
+
+    while True:
+        try:
+            user_input = input("You: ").strip()
+            if not user_input:
+                continue
+
+            if user_input.lower() in ("/quit", "/exit", "bye"):
+                print("Goodbye.")
+                break
+
+            if user_input.lower() == "/clear":
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                save_history(messages)
+                print("→ Conversation memory cleared.\n")
+                continue
+
+            messages.append({"role": "user", "content": user_input})
+
+            # Main agent loop (can call tools multiple rounds if needed)
+            while True:
+                response = client.chat.completions.create(
+                    model=MODEL,
+                    messages=messages,
+                    tools=TOOLS,
+                    tool_choice="auto",
+                    temperature=0.7,
+                    max_tokens=4096
+                )
+
+                choice = response.choices[0]
+                message = choice.message
+
+                # No tool calls → final answer
+                if not message.tool_calls:
+                    print("\nAI :", message.content.strip())
+                    messages.append({"role": "assistant", "content": message.content})
+                    break
+
+                # Tool calls present
+                messages.append(message)  # add assistant's tool-calling message
+
+                for tool_call in message.tool_calls:
+                    func_name = tool_call.function.name
+                    args = json.loads(tool_call.function.arguments)
+
+                    if func_name == "get_current_weather":
+                        result = get_current_weather(args.get("location", ""))
+                    else:
+                        result = f"Unknown tool: {func_name}"
+
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": func_name,
+                        "content": result
+                    })
+
+            save_history(messages)
+
+        except KeyboardInterrupt:
+            print("\nInterrupted.")
+            break
+        except Exception as e:
+            print(f"\nError: {e}\n")
+            continue
+
+
+if __name__ == "__main__":
+    main()
